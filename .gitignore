@@ -1,0 +1,19 @@
+# 빌드 출력
+build/
+*.o
+*.elf
+*.img
+*.bin
+
+# 편집기
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS 파일
+.DS_Store
+Thumbs.db
+
+# 디버그
+*.gch

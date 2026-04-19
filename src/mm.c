@@ -1,0 +1,201 @@
+#include "../include/types.h"
+#include "../include/defs.h"
+#include "../include/io.h"
+#include "../include/mm.h"
+#include "../include/asm.h"
+
+// 구조체 선언
+MMv5_stack mm_stack;
+MMv5_substack mm_substack;
+
+// ! 수정 사항 존재
+/*
+    메모리 관리자 스택 연산 push
+    retrun 0: fail
+    else 주소
+*/
+uint8_t MMv5_regu_push(MMv5_stack *stack, uint8_t val)
+{
+    // 할당은 항상 sp_top에서 하고
+    uint16_t result;
+    // ?  bot 포인터와 겹치지 않는지 확인이 필요함
+    uint16_t byte_idx = stack->sp_top >> 2;     // 몇 번째 바이트인지 (0~16383)
+    uint8_t bit_pos = (stack->sp_top & 3) << 1; // 바이트 내 비트 위치 (0, 2, 4, 6)
+
+    // ! 기존 비트 청소 후 새 2비트 값 삽입
+    stack->MMv5_mem[byte_idx] &= ~(0x03 << bit_pos);
+    stack->MMv5_mem[byte_idx] |= (val & 0x03) << bit_pos;
+    result = stack->sp_top;
+    stack->sp_top++; // 16비트 포인터 증가!
+    return result;   // 할당된 위치 알려주기
+}
+// 서브스택의 푸쉬
+uint8_t MMv5_regu_substack_push(MMv5_substack *stack, uint8_t val)
+{
+    stack->MMv5_submem[stack->sp] = val;
+    stack->sp++;
+}
+
+// 메모리_관리자 스택 연산 pop
+// ! 수정 사항 존재
+uint8_t MMv5_regu_pop(MMv5_stack *stack, uint16_t val)
+{
+    // 해제는 val 값을 제거
+    if (stack->sp_top == 0)
+    {
+        return 0xFF; // Stack Underflow
+    }
+
+    // ! 아래 로직 바꾸기 필수
+    stack->sp_temp = val; // 덤프 포인터를 val의 위치로 옮기고 0으로 포팅
+    uint16_t byte_idx = stack->sp_temp >> 2;
+    uint8_t bit_pos = (stack->sp_temp & 3) << 1;
+
+    return stack->MMv5_mem[byte_idx]; // 스택의 덤프 포인터가 가리키는 uint8_t 을 리턴
+}
+
+// 팝 함수
+/*
+uint8_t MMv5_regu_pop1(MMv5_stack *stack)
+{
+    // 해제는 항상 sp_top에서 하고
+    if (stack->sp_top == 0)
+    {
+        return 0xFF; // Stack Underflow
+    }
+
+    stack->sp_top--; // 포인터 먼저 내리고
+    uint16_t byte_idx = stack->sp_top >> 2;
+    uint8_t bit_pos = (stack->sp_top & 3) << 1;
+
+    return (stack->MMv5_mem[byte_idx] >> bit_pos) & 0x03;
+}
+*/
+
+// 메모리 관리자 초기화 함수
+void mm_init(MMv5_stack *stack, uint64_t addr)
+{
+    stack->base = (uint64_t *)addr; // 스택의 시작 위치 받기
+    stack->sp_top = 0x0;            // top 포인터를 시작위치로 옮기기
+    stack->sp_bot = 0xFFFF;         // bot 포인터를 마지막 위치로 옮기기
+}
+
+// ! 메모리 관리자 수정 필요
+/*
+    cmd == 0 : uint16_t(얼마를 할당 받고 싶은지 KB 기준), void -> uint16_t
+    cmd == 1 : uint16_t(어디에 할당 되었는지), void -> void
+    cmd == 2 : uint16_t(어느 주소를 찾고 싶은지), uint16_t 참조하는 간접 주소 -> uint64_t
+    -> 성공시 1 아닐시 0을 리턴함
+*/
+void *mm_run(MMv5_stack *stack, MMv5_substack *substack, int8_t cmd, uint16_t val16, uint16_t indi_addr)
+{
+    // 메모리의 값을 관리
+
+    // cmd = 0 할당 공간 할당 -> uint16_t 의 스택 포인터 주소 리턴
+    if (cmd == 0)
+    {
+        uint8_t data = (val16 >> 6) & 0x7; // 7,8,9로 쪼갠 데이터
+
+        if (data != 0) // 주어진 범위를 초과하지 않았으면
+        {
+            // ! ufux로 구간 내 비트를 추출하는 로직으로 변경하기
+            asm("clz %w0, %w1" : "=r"(data) : "r"((uint32_t)data)); // 어셈블러 따로 처리하는 함수를 만들어야함
+
+            if (stack->sp_top >= stack->sp_bot)
+            {
+                return (void *)(uintptr_t)0x00; // "not enough memory stack"
+            }
+            else
+            {
+                // ! 이것도 위에 바꾸면서 바꾸기
+                data = 37 - data;
+                return (void *)(uintptr_t)MMv5_regu_push(stack, data); // 메모리 스택 주소를 리턴함
+            }
+        }
+        else
+        {
+            // ! 아직 비정규로 할당할 함수 제작 하지 않음
+            // 이 함수는 sp_bot에서 부터 아래로 내려가며 할당할 예정
+            // 한번 할당할때 크기는 2비트가 아닌 1바이트 정도로 생각중
+        }
+    }
+    // cmd = 1 해제 공간 해제 -> 그 보는 바이트에 주소가 하나라면 uint16_t 의 주소 재할당
+    else if (cmd == 1)
+    {
+        // ! 여기에 확인 로직 넣어야함 리턴 인자값도 변경해야함
+        uint8_t remain_Byte = MMv5_regu_pop(&mm_stack, val16);                         // 남은 바이트 확인, 이미 기존 값은 없어짐
+        if (cnt(remain_Byte & BIT_EVEN8_t) <= 1 && cnt(remain_Byte & BIT_ODD8_t) <= 1) // 비트가 2개가 있는지 확인
+        {
+            if ((cnt(remain_Byte & 0x0F) ^ cnt(remain_Byte & 0xF0) != 0) || (cnt(remain_Byte & 0x33) != 1)) // 바이트 조각이 하나만 있는지 또는 다 차 있는지확인
+            {
+                // MMv5 스택 substack에서 푸쉬를 한다.
+                if (substack->sp >= 5)
+                {
+                    return (void *)(uintptr_t)0x00; // "not enough memory stack"
+                }
+                else
+                {
+                    return (void *)(uintptr_t)MMv5_regu_substack_push(substack, remain_Byte);
+                }
+            }
+            else
+            {
+                return (void *)(uintptr_t)0x00; //
+            }
+        }
+    }
+    // cmd = 2 주소 탐색 -> 프로그램이 주소를 요청하면 uint64_t 를 리턴(간접 주소)
+    else if (cmd == 2)
+    {
+        volatile uint64_t safe_base = (uint64_t)stack->base;
+
+        // [2] 데이터 영역 격리: 구조체 내 배열의 시작 주소를 명확히 함
+        uint8_t *mem_ptr = (uint8_t *)stack->MMv5_mem;
+        uint16_t calculated_val = 0;
+
+        // [3] 압축 로직 변수 설정
+        int valQuo = (val16 >> 5);    // 64비트(데이터 32개) 덩어리 개수
+        int val_rem = (val16 & 0x1F); // 남은 데이터 개수
+
+        // [4] 64비트 단위 SWAR 압축 연산 루프
+        for (int i = 0; i < valQuo; i++)
+        {
+            uint64_t chunk = 0;
+            // memcpy 대신 안전한 바이트 단위 복사 (Alignment & Corruption 방지)
+            for (int j = 0; j < 8; j++)
+            {
+                ((uint8_t *)&chunk)[j] = mem_ptr[(i << 3) + j];
+            }
+
+            // 비트 카운팅 (홀수/짝수 비트 분리 연산)
+            uint64_t odd = chunk & BIT_ODD64_t;
+            uint64_t even = chunk & BIT_EVEN64_t;
+
+            // cnt 함수를 통해 비트 개수 누적
+            calculated_val += (uint16_t)(cnt(odd) + (cnt(even) << 1));
+        }
+
+        // [5] 남은 비트(Remainder) 처리
+        if (val_rem > 0)
+        {
+            uint64_t last_chunk = 0;
+            for (int j = 0; j < 8; j++)
+            {
+                ((uint8_t *)&last_chunk)[j] = mem_ptr[(valQuo << 3) + j];
+            }
+
+            // ubfx 대신 안전한 마스킹 연산
+            uint64_t mask = (1ULL << (val_rem << 1)) - 1;
+            uint64_t last_bits = last_chunk & mask;
+
+            calculated_val += (uint16_t)(cnt(last_bits & BIT_ODD64_t) + (cnt(last_bits & BIT_EVEN64_t) << 1));
+        }
+
+        uint64_t resu64 = safe_base + ((uint64_t)calculated_val << 10) + indi_addr;
+        return resu64;
+    }
+    else
+    {
+        return (void *)(uintptr_t)0; // 없는 명령입니다.
+    }
+}
