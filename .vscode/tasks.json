@@ -1,0 +1,61 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build Kernel",
+            "type": "shell",
+            "command": "wsl",
+            "args": [
+                "-e", "bash", "-c",
+                "cd /mnt/c/Users/jxlag/OneDrive/Desktop/myOS && make"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Run QEMU with GDB",
+            "type": "shell",
+            "command": "wsl",
+            "args": [
+                "-e", "bash", "-c",
+                "cd /mnt/c/Users/jxlag/OneDrive/Desktop/myOS && qemu-system-aarch64 -M virt -cpu cortex-a72 -m 512M -kernel build/kernel8.elf -gdb tcp::1234 -serial stdio -S -monitor none -nographic"
+            ],
+            "isBackground": true,
+            "problemMatcher": {
+                "pattern": {
+                    "regexp": "^.*$",
+                    "file": 1,
+                    "location": 2,
+                    "message": 3
+                },
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": "^.*$",
+                    "endsPattern": "^.*$"
+                }
+            }
+        },
+        {
+            "label": "Open GDB",
+            "type": "shell",
+            "command": "wsl",
+            "args": [
+                "-e", "bash", "-c",
+                "cd /mnt/c/Users/jxlag/OneDrive/Desktop/myOS && gdb-multiarch build/kernel8.elf"
+            ]
+        },
+        {
+            "label": "Build and Debug",
+            "type": "shell",
+            "dependsOn": ["Build Kernel", "Run QEMU with GDB"],
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            },
+            "problemMatcher": []
+        }
+    ]
+}

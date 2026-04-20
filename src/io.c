@@ -68,10 +68,10 @@ void gets(int8_t *s, int32_t max_len)
     s[i] = '\0';
 }
 
-// PCB-related global variable
+// PCB-related 전역 변수
 void *current_pcb_addr = 0;
 
-// Clear screen using ANSI escape codes
+// 클리어
 void clear()
 {
     // \033[2J : 화면 전체 삭제
@@ -79,7 +79,7 @@ void clear()
     puts("\033[2J\033[H");
 }
 
-// Convert and print unsigned 64-bit integer as decimal
+// 부호 없는 64비트를 십진수로
 void put_uint(uint64_t n)
 {
     int8_t buf[21];
@@ -98,7 +98,7 @@ void put_uint(uint64_t n)
     puts(&buf[i + 1]);
 }
 
-// String comparison (returns 0 if equal)
+// 문자 비교 함수
 int32_t strcmp(const int8_t *s1, const int8_t *s2)
 {
     while (*s1 && (*s1 == *s2))
@@ -109,7 +109,7 @@ int32_t strcmp(const int8_t *s1, const int8_t *s2)
     return *(uint8_t *)s1 - *(uint8_t *)s2;
 }
 
-// Print hex value with 0x prefix
+// 16진수 출력 함수
 void put_hex(uint64_t d)
 {
     char *hex = "0123456789ABCDEF";
@@ -120,13 +120,12 @@ void put_hex(uint64_t d)
     }
 }
 
-// List available commands
+// 어떤 함수가 있는지 알려주는 함수
 void knowcmd(void)
 {
-    // 어떤 함수가 있는지 알려주는 함수
 }
 
-// Execute shell command
+// 쉘 실행 코드
 void shell_run(int8_t *cmd)
 {
     // 예시: 개행 문자 제거

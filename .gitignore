@@ -1,19 +1,25 @@
-# 빌드 출력
+temp/               # 모든 임시 파일
+notes/              # 메모 폴더를 만들 경우를 대비
+*.log               # 디버그 로그 파일들
+todo.md             # 개인적인 할 일 목록
+
 build/
 *.o
 *.elf
 *.img
 *.bin
+*.map               # 링커 맵 파일
 
-# 편집기
-.vscode/
-*.swp
+.vscode/            # VS Code 개인 설정
+.idea/              # IntelliJ / CLion 설정
+*.swp               # Vim 스왑 파일
 *.swo
-*~
+*~                  # 백업 파일
 
-# OS 파일
-.DS_Store
-Thumbs.db
 
-# 디버그
-*.gch
+.DS_Store           # macOS
+Thumbs.db           # Windows
+desktop.ini         # Windows
+
+*.gch               # 프리컴파일드 헤더
+*.d                 # 의존성 파일

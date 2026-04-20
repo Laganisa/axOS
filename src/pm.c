@@ -16,19 +16,17 @@ pcb_t *creat_proc(PMv1_object *obj, void *task, uint8_t parid)
     uint64_t target_chunk;
     uint64_t leading_zeros;
 
-    // 1. Summary 비트맵에서 빈자리(0)가 있는 청크 찾기
-    // 비어있는 곳이 0이니까, ~를 취해서 1로 만든 뒤 clz!
     uint64_t search_com = ~(uint64_t)obj->proc_comocc;
     asm volatile("clz %0, %1" : "=r"(leading_zeros) : "r"(search_com << 60));
 
     obj->occ_num = (uint8_t)leading_zeros;
 
     // if (obj->occ_num >= 4) 이면 나가게
-    // 2. 선택된 64비트 청크 내에서 빈자리(0) 찾기
+    // 선택된 64비트 청크 내에서 빈자리(0) 찾기
     target_chunk = ~obj->proc_occ[obj->occ_num]; // 0을 1로 반전
     asm volatile("clz %0, %1" : "=r"(leading_zeros) : "r"(target_chunk));
 
-    // 3. PID 계산 (청크 번호 * 64 + 비트 위치)
+    // PID 계산 (청크 번호 * 64 + 비트 위치)
     uint8_t bit_pos = 63 - (uint8_t)leading_zeros;
     uint8_t pid = (obj->occ_num << 6) | bit_pos;
 
@@ -47,15 +45,9 @@ pcb_t *creat_proc(PMv1_object *obj, void *task, uint8_t parid)
 
     // 할당 후 주소를 줌
     // 자신의 주소를 알아내고
-    // puts("val16\n");
-    // put_hex(obj->PMv1_mem[pid].mm_addr);
-
     uint64_t real_addr = (uint64_t)(uintptr_t)mm_run(&mm_stack, &mm_substack, 2, obj->PMv1_mem[pid].mm_addr, 0);
     uint64_t *reg_val = (uint64_t *)(real_addr + (INITIAL_PROC_SIZE << 10) - 256);
     obj->PMv1_mem[pid].reg = (INITIAL_PROC_SIZE << 10) - 256; // 레지스터 위치
-
-    // puts("나왔다!!!");
-    // 한번 proc.sp & pc에 저장해보자
 
     obj->PMv1_mem[pid].pc = (uint64_t)task;
     obj->PMv1_mem[pid].sp = (uint64_t)reg_val;
@@ -123,9 +115,6 @@ pcb_t *pm_run(PMv1_object *obj)
 {
     uint8_t data;
 
-    // -------------------------
-    // HIGH PRIORITY QUEUE
-    // -------------------------
     if (obj->highnum != 0)
     {
         data = pm_qaddr(obj, 1, 1, 0);
@@ -143,16 +132,13 @@ pcb_t *pm_run(PMv1_object *obj)
 
         if (data == PROC_SIGNAL)
         {
-            // signal 처리 (필요하면 구현)
+            // signal 처리
             return &obj->PMv1_mem[0];
         }
 
         return &obj->PMv1_mem[data];
     }
 
-    // -------------------------
-    // LOW PRIORITY QUEUE
-    // -------------------------
     else if (obj->lownum != 0)
     {
         data = pm_qaddr(obj, 0, 1, 0);
@@ -169,10 +155,6 @@ pcb_t *pm_run(PMv1_object *obj)
 
         return &obj->PMv1_mem[data];
     }
-
-    // -------------------------
-    // EMPTY CASE
-    // -------------------------
     return &obj->PMv1_mem[0];
 }
 /*
@@ -183,12 +165,14 @@ pcb_t *pm_run(PMv1_object *obj)
 void pm_awake(PMv1_object *obj, uint8_t cmd, pcb_t *proc)
 {
     // pm_awake 함수 안에서
+    /*
     puts("[AWAKE] Target ID: ");
     put_hex((uint64_t)proc->id);
     puts("\n");
     puts("[AWAKE] Current lownum: ");
     put_hex((uint64_t)obj->lownum);
     puts("\n");
+    */
 
     if (cmd == 0)
     {

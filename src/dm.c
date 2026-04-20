@@ -3,7 +3,7 @@
 // 드라이버 구조체
 typedef struct
 {
-    char *name;              // 드라이버 이름 (예: "virtio-net")
+    char *name;              // 드라이버 이름
     int (*init)(void);       // 초기화 함수 포인터
     int (*read)(void *buf);  // 데이터 읽기 함수 포인터
     int (*write)(void *buf); // 데이터 쓰기 함수 포인터

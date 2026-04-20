@@ -1,11 +1,11 @@
-.align 11 // 테이블 시작 주소는 반드시 2048바이트 정렬이어야 함 (하드웨어 제약)
+.align 11 // 테이블 시작 주소 2048바이트 정렬
 .global vector_table
 .global lower_el_aarch64_irq
 
 .extern current_task_id
 
 vector_table:
-    /* --- CASE 1: 현재 EL에서 SP_EL0 사용 (거의 안 씀) --- */
+    // 현재 EL에서 SP_EL0 사용(거의 사용하지 않음)
     .align 7
     b curr_el_sp0_sync
     .align 7
@@ -15,27 +15,27 @@ vector_table:
     .align 7
     b curr_el_sp0_serror
 
-    /* --- CASE 2: 현재 EL에서 SP_ELx 사용 (커널 내부 예외) --- */
+    //현재 EL에서 SP_ELx 사용 (커널 내부 예외)
     .align 7
     b curr_el_spx_sync
     .align 7
-    b curr_el_spx_irq   // 커널 실행 중 인터럽트 터지면 여기로!
+    b curr_el_spx_irq   // 커널 실행 중 인터럽트 터지면 이 함수 실행
     .align 7
     b curr_el_spx_fiq
     .align 7
     b curr_el_spx_serror
 
-    /* --- CASE 3: 하위 EL에서 AArch64 사용 (태스크가 돌다 터질 때) --- */
+    //하위 EL에서 AArch64 사용 (태스크가 돌다 터질 때)
     .align 7
     b lower_el_aarch64_sync  // 시스템 콜 (svc)
     .align 7
-    b lower_el_aarch64_irq   // 태스크 실행 중 타이머 터지면 바로 여기!!
+    b lower_el_aarch64_irq   // 태스크 실행 중 타이머 터지면 이 함수 실행
     .align 7
     b lower_el_aarch64_fiq
     .align 7
     b lower_el_aarch64_serror
 
-    /* --- CASE 4: 하위 EL에서 AArch32 사용 (무시해도 됨) --- */
+    // 하위 EL에서 AArch32 사용 (거의 안 씀)
     .align 7
     b lower_el_aarch32_sync
     .align 7
@@ -44,6 +44,8 @@ vector_table:
     b lower_el_aarch32_fiq
     .align 7
     b lower_el_aarch32_serror
+
+// 밑에 부터 주석 바꾸기
 
 lower_el_aarch64_irq:
     // UART에 직접 'L' 출력 (벡터 진입 확인)

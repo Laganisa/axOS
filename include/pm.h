@@ -49,6 +49,6 @@ pcb_t *pm_run(PMv1_object *obj);
 void pm_awake(PMv1_object *obj, uint8_t cmd, pcb_t *proc);
 
 // 전역 구조체 선언
-extern PMv1_object pm_object; // 프로세스 관리자의 스택 전역변수 선언 //? 왜 인지는 모름
+extern PMv1_object pm_object;
 
 #endif

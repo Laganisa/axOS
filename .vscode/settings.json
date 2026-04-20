@@ -1,0 +1,16 @@
+{
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "ms-vscode.cpptools",
+    "[c]": {
+        "editor.defaultFormatter": "ms-vscode.cpptools"
+    },
+    "C_Cpp.intelliSenseEngine": "default",
+    "C_Cpp.codeAnalysis.enabled": true,
+    "search.exclude": {
+        "build": true,
+        "*.o": true
+    },
+    "files.associations": {
+        "*.S": "asm"
+    }
+}

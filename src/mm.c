@@ -149,33 +149,26 @@ void *mm_run(MMv5_stack *stack, MMv5_substack *substack, int8_t cmd, uint16_t va
     {
         volatile uint64_t safe_base = (uint64_t)stack->base;
 
-        // [2] 데이터 영역 격리: 구조체 내 배열의 시작 주소를 명확히 함
         uint8_t *mem_ptr = (uint8_t *)stack->MMv5_mem;
         uint16_t calculated_val = 0;
 
-        // [3] 압축 로직 변수 설정
         int valQuo = (val16 >> 5);    // 64비트(데이터 32개) 덩어리 개수
         int val_rem = (val16 & 0x1F); // 남은 데이터 개수
 
-        // [4] 64비트 단위 SWAR 압축 연산 루프
         for (int i = 0; i < valQuo; i++)
         {
             uint64_t chunk = 0;
-            // memcpy 대신 안전한 바이트 단위 복사 (Alignment & Corruption 방지)
             for (int j = 0; j < 8; j++)
             {
                 ((uint8_t *)&chunk)[j] = mem_ptr[(i << 3) + j];
             }
 
-            // 비트 카운팅 (홀수/짝수 비트 분리 연산)
             uint64_t odd = chunk & BIT_ODD64_t;
             uint64_t even = chunk & BIT_EVEN64_t;
 
-            // cnt 함수를 통해 비트 개수 누적
             calculated_val += (uint16_t)(cnt(odd) + (cnt(even) << 1));
         }
 
-        // [5] 남은 비트(Remainder) 처리
         if (val_rem > 0)
         {
             uint64_t last_chunk = 0;
@@ -184,7 +177,6 @@ void *mm_run(MMv5_stack *stack, MMv5_substack *substack, int8_t cmd, uint16_t va
                 ((uint8_t *)&last_chunk)[j] = mem_ptr[(valQuo << 3) + j];
             }
 
-            // ubfx 대신 안전한 마스킹 연산
             uint64_t mask = (1ULL << (val_rem << 1)) - 1;
             uint64_t last_bits = last_chunk & mask;
 
