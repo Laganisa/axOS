@@ -5,11 +5,11 @@
 #include "../include/types.h"
 
 // 분리 파일
-#include "../include/asm.h"       // 어셈블리 함수가 있는 헤더
-#include "../include/defs.h"      // 정의 헤더
-#include "../include/io.h"        // 입출력 헤더
-#include "../include/irq.h"       // 인터럽트 헤더 추가
-#include "../include/exception.h" // Exception handlers
+#include "../include/asm.h"  // 어셈블리 함수가 있는 헤더
+#include "../include/defs.h" // 정의 헤더
+#include "../include/io.h"   // 입출력 헤더
+#include "../include/irq.h"  // 인터럽트 헤더 추가
+#include "../include/exce.h" // Exception handlers
 
 #include "../include/mm.h" // 메모리 관리자가 있는 헤더
 #include "../include/pm.h" // 프로세스 관리자 헤더
@@ -25,7 +25,7 @@ int current_task_id = 0; // 반드시 함수 밖(Global)에 있어야 함
 void task_A()
 {
     // puts("[TASK CHECK]");
-    // put_hex(UNIQUE_KERNEL_CURRENT_PROC->id);
+    // put_hex(current_proc->id);
 
     asm volatile("msr daifclr, #2");
 
@@ -37,27 +37,51 @@ void task_A()
     }
 }
 
-void task_B()
+void task_B1()
 {
     // puts("[TASK CHECK]");
-    // put_hex(UNIQUE_KERNEL_CURRENT_PROC->id);
+    // put_hex(current_proc->id);
 
     asm volatile("msr daifclr, #2");
 
     while (1)
     {
         puts("B");
-        for (volatile int i = 0; i < 500000; i++)
+        for (volatile int i = 0; i < 1000000; i++)
             ;
     }
 }
 
-/*
-    커널 로직
-    입력 받는 동안에는 인터럽트를 끈다
-*/
-void kernel(void)
+void task_B()
 {
+    // puts("[TASK CHECK]");
+    // put_hex(current_proc->id);
+
+    asm volatile("msr daifclr, #2");
+    int i = 10;
+    while (i > 0)
+    {
+        puts("B");
+        i--;
+    }
+
+    asm volatile(
+        "mov x8, #93\n"
+        "svc #0\n" ::: "x8" // x8 레지스터를 사용한다고 컴파일러에게 알림
+    );
+
+    while (1)
+    {
+        puts("Error: Task B should be dead!\n");
+    }
+}
+
+/*
+    pid 1 을 만듬
+*/
+void proc_init(void)
+{
+    asm volatile("msr daifclr, #2");
 
     while (1)
     {
@@ -89,11 +113,9 @@ void kernel(void)
 void main(void)
 {
     // 하드웨어 초기화
-    uart_init(); // 수정 금지
-
+    uart_init();
     // 관리자 초기화
     mm_init(&mm_stack, END_KERNEL_ADDR);
-
     // 인터럽트/타이머 초기화
     init_irq();
 
@@ -103,8 +125,11 @@ void main(void)
     puts("Welcome! Have a great time.\n"); // 환영 메시지
 
     pcb_t *proc1 = creat_proc(&pm_object, &task_A, 0);
-    current_proc = proc1;
     pcb_t *proc2 = creat_proc(&pm_object, &task_B, 0);
+    current_proc = proc1;
+
+    put_hex(proc1->id);
+    put_hex(proc2->id);
 
     pm_awake(&pm_object, 0, proc2);
     // ? pm_awake(&pm_object, 0, proc1);

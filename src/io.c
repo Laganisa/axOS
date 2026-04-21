@@ -118,6 +118,7 @@ void put_hex(uint64_t d)
     {
         putchar(hex[(d >> i) & 0xF]);
     }
+    puts("\n");
 }
 
 // 어떤 함수가 있는지 알려주는 함수

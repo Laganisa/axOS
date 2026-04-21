@@ -4,21 +4,23 @@
 #ifndef __PM_H__
 #define __PM_H__
 
-// pcb 8바이트
-// ? 나중에 프로세스가 생성되고 레지스터 공간 따로 할당
+// pcb 33바이트
+// 나중에 프로세스가 생성되고 레지스터 공간 따로 할당
+// 남는 공간이 40비트 정도
 typedef struct pcb_t
 {
-    uint8_t id;         // 1 byte
-    uint8_t p_id;       // 1 byte
-    uint16_t proc_info; // 2 bytes
-    uint16_t mm_addr;   // 2 bytes
-    uint16_t padding1;  // 2 bytes (여기에 패딩 추가!) - 여기까지 8바이트
+    uint8_t id;         // 프로세스 id
+    uint8_t p_id;       // 부모의 id
+    uint8_t b_id;       // 죽을때 쓸 id
+    uint8_t padding1;   // 패딩
+    uint16_t proc_info; // 프로세스 정보
+    uint16_t mm_addr;   // 메모리 주소
 
-    uint32_t reg;      // 4 bytes
-    uint32_t padding2; // 4 bytes (여기에 패딩 추가!) - 여기까지 16바이트
+    uint32_t reg;      // 레지스터 주소값
+    uint32_t padding2; // 패딩
 
-    uint64_t sp; // 8 bytes (24바이트 지점)
-    uint64_t pc; // 8 bytes (32바이트 지점)
+    uint64_t sp; // 스택 포인터
+    uint64_t pc; // 프로그램 카운터
 } __attribute__((aligned(8))) pcb_t;
 
 typedef struct PMv1_object
@@ -32,7 +34,7 @@ typedef struct PMv1_object
     uint8_t lowtail;                      // 원형큐 꼬리
     uint8_t highhead;                     // 원형큐 머리
     uint8_t hightail;                     // 원형큐 꼬리
-    pcb_t PMv1_mem[MAX_PCB_SIZE];         // 최대 프로세스 수 만큼 만들기 2KB 정도 pcb의 배열
+    pcb_t PMv1_mem[MAX_PCB_SIZE];         // 최대 프로세스 수 만큼 만들기 8KB 정도 pcb의 배열
     uint8_t PMv1_lowqueue[MAX_PCB_SIZE];  // 프로세스 low q
     uint8_t PMv1_highqueue[MAX_PCB_SIZE]; // 프로세스 high q
 

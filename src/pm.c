@@ -1,6 +1,7 @@
 #include "../include/types.h"
 #include "../include/defs.h"
 #include "../include/io.h"
+#include "../include/exce.h"
 
 #include "../include/mm.h"
 #include "../include/pm.h"
@@ -9,10 +10,14 @@ extern void _proc(uint64_t *reg_val); // proc와 연결
 
 PMv1_object pm_object;
 
-// 프로세스 생성
-// ! 나중에 내 입맛 대로 만들기
+/*
+    프로세스 생성
+    ! pid 생성을 오름차순으로
+*/
 pcb_t *creat_proc(PMv1_object *obj, void *task, uint8_t parid)
 {
+    // id 로직
+
     uint64_t target_chunk;
     uint64_t leading_zeros;
 
@@ -37,9 +42,14 @@ pcb_t *creat_proc(PMv1_object *obj, void *task, uint8_t parid)
         obj->proc_comocc |= (1 << (3 - obj->occ_num));
     }
 
+    pid = 63 - pid;
+
     obj->PMv1_mem[pid].id = pid;      // 프로세스의 id를 할당된 pid로 변경
+    obj->PMv1_mem[pid].b_id = pid;    // 죽을때 쓸 id를 저장
     obj->PMv1_mem[pid].p_id = parid;  // 부모 id를 수정함
     obj->PMv1_mem[pid].proc_info = 0; // 정보를 0으로 수정
+
+    // 메모리 로직
     // 128KB를 할당 리턴 된 메모리 스택 주소를 받음
     obj->PMv1_mem[pid].mm_addr = (uint16_t)(uintptr_t)mm_run(&mm_stack, &mm_substack, 0, INITIAL_PROC_SIZE, 0);
 
@@ -108,7 +118,6 @@ uint8_t pm_qaddr(PMv1_object *queue, uint8_t type, uint8_t cmd, uint8_t val)
     }
 }
 
-#define PMV1_MAX_PROC 255
 // 프로세스 실행 함수
 // 큐에 들어가 있는 대로 진행함
 pcb_t *pm_run(PMv1_object *obj)
@@ -119,9 +128,8 @@ pcb_t *pm_run(PMv1_object *obj)
     {
         data = pm_qaddr(obj, 1, 1, 0);
 
-        puts("Next Proc ID: ");
+        puts("\nNext Proc ID: ");
         put_hex(data);
-        puts("\n");
 
         // 안전 체크
         if (data >= PMV1_MAX_PROC)
@@ -143,9 +151,11 @@ pcb_t *pm_run(PMv1_object *obj)
     {
         data = pm_qaddr(obj, 0, 1, 0);
 
-        puts("Next Proc ID: ");
+        // 다음 프로세스 확인
+        puts("\nNext Proc ID: ");
         put_hex(data);
-        puts("\n");
+        puts("\nNext Proc ADDR: ");
+        put_hex(&current_proc);
 
         if (data >= PMV1_MAX_PROC)
             return &obj->PMv1_mem[0];
@@ -155,33 +165,47 @@ pcb_t *pm_run(PMv1_object *obj)
 
         return &obj->PMv1_mem[data];
     }
+
     return &obj->PMv1_mem[0];
 }
+
 /*
     프로세스 활성, 비활성 함수
     uint8_t cmd = 0 , uint8_t task의 주소 포인터 활성 상태로 전환
     uint8_t cmd = 1 , uintt_t task의 주소 포인터 비활성 상태로 전환
+    uint8_t cmd = 2 , uint8_t task의 주소 및 메모리 해제
+    요악 하면 cmd = 1은 wait, cmd = 2 는 kill
 */
 void pm_awake(PMv1_object *obj, uint8_t cmd, pcb_t *proc)
 {
-    // pm_awake 함수 안에서
-    /*
-    puts("[AWAKE] Target ID: ");
-    put_hex((uint64_t)proc->id);
-    puts("\n");
-    puts("[AWAKE] Current lownum: ");
-    put_hex((uint64_t)obj->lownum);
-    puts("\n");
-    */
-
+    // pm_run의 대기 큐에 삽입
     if (cmd == 0)
     {
         pm_qaddr(&pm_object, 0, 0, proc->id);
     }
+    // pm_run에서 삭제
+    else
+    {
+        puts("좀비로 만들기");
+        // 일단 비트를 수정하기
+        proc->proc_info = cmd;  // cmd 값에 따라 달라짐
+        proc->b_id = proc->id;  // 전 id를 id로 변경
+        proc->id = PROC_SIGNAL; // 시그널값으로 변경
+
+        uint8_t *ptr = (uint8_t *)proc;
+        puts("\n[DEBUG] Raw PCB memory: ");
+        for (int i = 0; i < 16; i++)
+        {
+            put_hex(ptr[i]); // PCB 앞부분 16바이트를 1바이트씩 다 찍어봐
+        }
+
+        if (cmd == 1)
+        {
+            pm_qaddr(&pm_object, 0, 0, proc->id);
+        }
+        else if (cmd == 2)
+        {
+            //
+        }
+    }
 }
-
-// 프로세스 종료 함수
-
-// 프로세스 대기 함수
-
-// 추가 함수들

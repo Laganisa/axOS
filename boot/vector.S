@@ -1,6 +1,7 @@
 .align 11 // 테이블 시작 주소 2048바이트 정렬
 .global vector_table
 .global lower_el_aarch64_irq
+.global new_context
 
 .extern current_task_id
 
@@ -48,17 +49,13 @@ vector_table:
 // 밑에 부터 주석 바꾸기
 
 lower_el_aarch64_irq:
-    // UART에 직접 'L' 출력 (벡터 진입 확인)
-    mov x30, #0x09000000
-    mov w29, #'L'
-    str w29, [x30]
     
-    /* 1. 함수 호출을 통해 '진짜' UNIQUE_KERNEL_CURRENT_PROC의 주소 얻기 */
+    /* 1. 함수 호출을 통해 '진짜' current_proc의 주소 얻기 */
     bl get_current_proc_addr
-    /* 호출 결과: x0 = &UNIQUE_KERNEL_CURRENT_PROC (진짜 변수 위치) */
+    /* 호출 결과: x0 = &current_proc (진짜 변수 위치) */
     
     /* 2. x2에 저장 (복원 단계에서도 사용할 예정) */
-    mov x2, x0                /* x2 = &UNIQUE_KERNEL_CURRENT_PROC */
+    mov x2, x0                /* x2 = &current_proc */
     
     /* 3. 현재 PCB 주소 로드 */
     ldr x3, [x2]              /* x3 = 현재 PCB 주소 */
@@ -156,9 +153,9 @@ curr_el_spx_irq:
     stp x0, x1, [sp, #256]
 
     /* 2. C 핸들러 호출 준비 (인자 세팅) */
-    /* 함수를 통해 진짜 UNIQUE_KERNEL_CURRENT_PROC의 주소 얻기 */
+    /* 함수를 통해 진짜 current_proc의 주소 얻기 */
     bl get_current_proc_addr
-    /* x0 = &UNIQUE_KERNEL_CURRENT_PROC */
+    /* x0 = &current_proc */
     
     /* x2에 저장 (나중에 새로운 PCB 가져올 때 사용) */
     mov x2, x0
@@ -196,7 +193,38 @@ curr_el_spx_irq:
     ldp x2, x3, [sp, #16]
     ldp x0, x1, [sp, #0]
 
+    // add sp, sp, #272
+    add sp, sp, #256
+    /* 5. 인터럽트 종료 및 복귀 */
+    eret
+
+new_context:
+    /* x0에 새로운 SP(레지스터가 저장된 위치)가 담겨서 온다고 가정 */
+    mov sp, x0                /* 1. CPU의 스택 포인터를 새 태스크의 스택으로 교체! */
+
+    /* 2. 새 태스크의 레지스터 복원 (네 코드의 4번 로직 그대로) */
+    ldp x0, x1, [sp, #256]    
+    msr elr_el1, x0
+    msr spsr_el1, x1
+
+    ldr x30, [sp, #240]      
+    ldp x28, x29, [sp, #224]
+    ldp x26, x27, [sp, #208]
+    ldp x24, x25, [sp, #192]
+    ldp x22, x23, [sp, #176]
+    ldp x20, x21, [sp, #160]
+    ldp x18, x19, [sp, #144]
+    ldp x16, x17, [sp, #128]
+    ldp x14, x15, [sp, #112]
+    ldp x12, x13, [sp, #96]
+    ldp x10, x11, [sp, #80]
+    ldp x8, x9, [sp, #64]
+    ldp x6, x7, [sp, #48]
+    ldp x4, x5, [sp, #32]
+    ldp x2, x3, [sp, #16]
+    ldp x0, x1, [sp, #0]
+
     add sp, sp, #272
 
-    /* 5. 인터럽트 종료 및 복귀 */
+    /* 3. 새로운 프로세스로 점프! */
     eret

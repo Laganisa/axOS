@@ -1,7 +1,7 @@
 #include "../include/defs.h"
 #include "../include/types.h"
 #include "../include/io.h"
-#include "../include/exception.h"
+#include "../include/exce.h"
 #include "../include/pm.h"
 #include "../include/mm.h"
 
@@ -11,15 +11,26 @@ extern void vector_table(void);
 
 // extern volatile uint8_t resched_flag;
 
-pcb_t *UNIQUE_KERNEL_CURRENT_PROC = 0;
+pcb_t *current_proc = 0;
 
 pcb_t **get_current_proc_addr()
 {
-    return &UNIQUE_KERNEL_CURRENT_PROC;
+    return &current_proc;
 }
 
 uint64_t irq_handler_main(pcb_t *proc, uint64_t current_sp)
 {
+    puts("\nenter irq_handler_main\n");
+
+    uint64_t elr, esr;
+    asm volatile("mrs %0, elr_el1" : "=r"(elr));
+    asm volatile("mrs %0, esr_el1" : "=r"(esr));
+
+    puts("Enter IRQ. ELR: ");
+    put_hex(elr);
+    puts(" ESR: ");
+    put_hex(esr);
+
     uint32_t iar = *(volatile uint32_t *)(GIC_CPU_BASE + 0x0C);
     uint32_t irq_nr = iar & 0x3FF;
 
@@ -27,20 +38,23 @@ uint64_t irq_handler_main(pcb_t *proc, uint64_t current_sp)
     {
         asm volatile("msr cntp_tval_el0, %0" : : "r"(0x1000000));
 
+        // current_proc = pm_run(&pm_object);
+
+        // 프로세스 넣기
         pm_awake(&pm_object, 0, proc);
 
-        UNIQUE_KERNEL_CURRENT_PROC = pm_run(&pm_object);
+        current_proc = pm_run(&pm_object);
     }
 
     *(volatile uint32_t *)(GIC_CPU_BASE + 0x10) = iar;
 
     // 다시 확인
-    if (UNIQUE_KERNEL_CURRENT_PROC == NULL)
+    if (current_proc == NULL)
     {
         return current_sp;
     }
 
-    return UNIQUE_KERNEL_CURRENT_PROC->sp;
+    return current_proc->sp;
 }
 
 // 이거 왜 있음?
@@ -74,17 +88,17 @@ void init_timer()
     asm volatile("msr cntp_tval_el0, %0" : : "r"(0x1000000)); // 0.1초
     asm volatile("msr cntp_ctl_el0, %0" : : "r"(1));          // Enable=1, IMASK=0
 
-    puts("[IRQ] Timer initialized (CNTP, freq=");
-    put_hex(freq);
-    puts(")\n");
+    // puts("[IRQ] Timer initialized (CNTP, freq=");
+    // put_hex(freq);
+    // puts(")\n");
 }
 
 void init_gic()
 {
-    puts("[GIC] ===== Starting GIC Init =====\n");
+    // puts("[GIC] ===== Starting GIC Init =====\n");
 
     *(volatile uint32_t *)(GIC_DIST_BASE + 0x000) = 0;
-    puts("[GIC] Distributor OFF\n");
+    // puts("[GIC] Distributor OFF\n");
 
     *(volatile uint32_t *)(GIC_DIST_BASE + 0x080) = 0x00000000;
 
@@ -94,15 +108,15 @@ void init_gic()
     {
         *(volatile uint8_t *)((uintptr_t)GIC_DIST_BASE + 0x400 + i) = 0x80;
     }
-    puts("[GIC] Priority set for all PPI\n");
+    // puts("[GIC] Priority set for all PPI\n");
 
     // 모든 PPI 인터럽트 enable (ISENABLER0)
     // 비트 16-31 = PPI 16-31
     *(volatile uint32_t *)(GIC_DIST_BASE + 0x100) = 0xFFFF0000; // PPI를 모두 활성화
     uint32_t check = *(volatile uint32_t *)(GIC_DIST_BASE + 0x100);
-    puts("[GIC] ISENABLER0 set to: ");
-    put_hex(check);
-    puts("\n");
+    // puts("[GIC] ISENABLER0 set to: ");
+    // put_hex(check);
+    // puts("\n");
 
     *(volatile uint32_t *)(GIC_DIST_BASE + 0x000) = 0;
 
