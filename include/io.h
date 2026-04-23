@@ -9,6 +9,7 @@ void putchar(int8_t c);
 void puts(const int8_t *s);
 int8_t getchar(void);
 void gets(int8_t *s, int32_t max_len);
+void remo_get(int8_t *s, int32_t max_len);
 
 void put_hex(uint64_t d);
 void put_uint(uint64_t n);

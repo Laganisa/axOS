@@ -23,6 +23,22 @@ typedef struct pcb_t
     uint64_t pc; // 프로그램 카운터
 } __attribute__((aligned(8))) pcb_t;
 
+typedef struct pcb_u
+{
+    uint8_t id;         // 프로세스 id
+    uint8_t p_id;       // 부모의 id
+    uint8_t b_id;       // 죽을때 쓸 id
+    uint8_t padding1;   // 패딩
+    uint16_t proc_info; // 프로세스 정보
+    uint16_t mm_addr;   // 메모리 주소
+
+    uint32_t reg;      // 레지스터 주소값
+    uint32_t padding2; // 패딩
+
+    uint64_t sp; // 스택 포인터
+    uint64_t pc; // 프로그램 카운터
+} pcb_u;
+
 typedef struct PMv1_object
 {
     // 총 공간이 3KB 정도

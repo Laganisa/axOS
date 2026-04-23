@@ -186,6 +186,7 @@ void *mm_run(MMv5_stack *stack, MMv5_substack *substack, int8_t cmd, uint16_t va
         uint64_t resu64 = safe_base + ((uint64_t)calculated_val << 10) + indi_addr;
         return resu64;
     }
+    // 예외
     else
     {
         return (void *)(uintptr_t)0; // 없는 명령입니다.

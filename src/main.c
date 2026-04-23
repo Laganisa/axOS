@@ -52,6 +52,7 @@ void task_B1()
     }
 }
 
+// 종료 실험
 void task_B()
 {
     // puts("[TASK CHECK]");
@@ -77,9 +78,9 @@ void task_B()
 }
 
 /*
-    pid 1 을 만듬
+    init 프로세스(pid = 1)
 */
-void proc_init(void)
+void INIT_PROC(void)
 {
     asm volatile("msr daifclr, #2");
 
@@ -87,7 +88,7 @@ void proc_init(void)
     {
         int8_t cmd[64];
         puts("root@localhost : ");
-        gets(cmd, 64);
+        remo_get(cmd, 64);
 
         if (strcmp(cmd, "end") == 0)
         {

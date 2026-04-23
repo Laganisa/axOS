@@ -38,12 +38,18 @@ uint64_t irq_handler_main(pcb_t *proc, uint64_t current_sp)
     {
         asm volatile("msr cntp_tval_el0, %0" : : "r"(0x1000000));
 
-        // current_proc = pm_run(&pm_object);
-
-        // 프로세스 넣기
-        pm_awake(&pm_object, 0, proc);
-
-        current_proc = pm_run(&pm_object);
+        pcb_t *next = pm_run(&pm_object);
+        if (next == PROC_SIGNAL)
+        {
+            pm_awake(&pm_object, 0, proc); // 현재 proc를 넣고
+            mm_run(&mm_stack, &mm_substack, 1, proc->mm_addr, 0);
+            current_proc = pm_run(&pm_object); // 다른걸 꺼내자
+        }
+        else
+        {
+            pm_awake(&pm_object, 0, proc);
+            current_proc = next;
+        }
     }
 
     *(volatile uint32_t *)(GIC_CPU_BASE + 0x10) = iar;

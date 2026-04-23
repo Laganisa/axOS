@@ -46,23 +46,29 @@ void gets(int8_t *s, int32_t max_len)
     while (i < max_len - 1)
     {
         int8_t c = getchar();
-        putchar(c); // 입력한 문자를 다시 출력 (echo)
 
+        // 1. 엔터 처리
         if (c == '\r' || c == '\n')
         {
             putchar('\n');
             break;
         }
-        else if (c == '\b' && i > 0)
+        // 2. 백스페이스 처리 (ASCII 8: \b, 127: DEL)
+        else if ((c == '\b' || c == 127))
         {
-            // Backspace 처리
-            s[--i] = '\0';
-            puts("\b \b"); // 스크린에서 문자 제거
+            if (i > 0)
+            {
+                i--;
+                s[i] = '\0';   // 버퍼에서 제거
+                puts("\b \b"); // 화면에서 제거
+            }
+            // i가 0일 때는 아무것도 안 함 (프롬프트 보호)
         }
+        // 3. 일반 문자 입력 (에코는 여기서만!)
         else if (c >= 32 && c < 127)
         {
-            // 출력 가능한 문자
             s[i++] = c;
+            putchar(c); // 백스페이스나 엔터가 아닐 때만 화면에 출력
         }
     }
     s[i] = '\0';
@@ -148,4 +154,40 @@ void shell_run(int8_t *cmd)
     }
 
     puts("\n"); // 개행
+}
+
+// 제거 가능한 입력
+void remo_get(int8_t *s, int32_t max_len)
+{
+    int32_t i = 0;
+    while (i < max_len - 1)
+    {
+        int8_t c = getchar();
+
+        // 1. 엔터: 입력 완료 시점
+        if (c == '\r' || c == '\n')
+        {
+            putchar('\n');
+            break;
+        }
+
+        // 2. 백스페이스(0x08) 및 DEL(0x7F): 제거(Remove) 로직
+        else if (c == '\b' || c == 0x7F)
+        {
+            if (i > 0) // 프롬프트 가드 (방화벽 역할)
+            {
+                i--;           // 인덱스 뒤로
+                s[i] = '\0';   // 버퍼에서 제거
+                puts("\b \b"); // 화면에서 한 글자 지우기
+            }
+        }
+
+        // 3. 일반 문자: 버퍼 추가 및 에코(Echo)
+        else if (c >= 32 && c < 127)
+        {
+            s[i++] = c; // 버퍼에 저장
+            putchar(c); // 화면에 출력
+        }
+    }
+    s[i] = '\0'; // 최종 문자열 마무리
 }
