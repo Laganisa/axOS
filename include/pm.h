@@ -12,44 +12,31 @@ typedef struct pcb_t
     uint8_t id;         // 프로세스 id
     uint8_t p_id;       // 부모의 id
     uint8_t b_id;       // 죽을때 쓸 id
-    uint8_t padding1;   // 패딩
     uint16_t proc_info; // 프로세스 정보
     uint16_t mm_addr;   // 메모리 주소
 
-    uint32_t reg;      // 레지스터 주소값
-    uint32_t padding2; // 패딩
+    uint32_t reg;       // 레지스터 주소값
+    bool is_msgbox;     // 메시지 박스가 차있는지
+    bool is_call;       // 자신에게 읽으라고 했는지
+    uint8_t from;       // 누구에게 왔는지
+    uint8_t msgbox[64]; // 메세지
 
     uint64_t sp; // 스택 포인터
     uint64_t pc; // 프로그램 카운터
 } __attribute__((aligned(8))) pcb_t;
 
-typedef struct pcb_u
-{
-    uint8_t id;         // 프로세스 id
-    uint8_t p_id;       // 부모의 id
-    uint8_t b_id;       // 죽을때 쓸 id
-    uint8_t padding1;   // 패딩
-    uint16_t proc_info; // 프로세스 정보
-    uint16_t mm_addr;   // 메모리 주소
-
-    uint32_t reg;      // 레지스터 주소값
-    uint32_t padding2; // 패딩
-
-    uint64_t sp; // 스택 포인터
-    uint64_t pc; // 프로그램 카운터
-} pcb_u;
-
 typedef struct PMv1_object
 {
     // 총 공간이 3KB 정도
-    uint8_t proc_comocc : 4;              // 그중에서 어떤 proc_occ 이 사용되지 않았는지
-    uint8_t proc_comscj : 4;              // 프로세서 pm_rum에 들어가는 관리하는
-    uint8_t lownum;                       // low에 들어있는 프로세스 수
-    uint8_t highnum;                      // high에 들어있는 프로세스 수
-    uint8_t lowhead;                      // 원형큐 머리
-    uint8_t lowtail;                      // 원형큐 꼬리
-    uint8_t highhead;                     // 원형큐 머리
-    uint8_t hightail;                     // 원형큐 꼬리
+    uint8_t proc_comocc : 4; // 그중에서 어떤 proc_occ 이 사용되지 않았는지
+    uint8_t proc_comscj : 4; // 프로세서 pm_rum에 들어가는 관리하는
+    uint8_t lownum;          // low에 들어있는 프로세스 수
+    uint8_t highnum;         // high에 들어있는 프로세스 수
+    uint8_t lowhead;         // 원형큐 머리
+    uint8_t lowtail;         // 원형큐 꼬리
+    uint8_t highhead;        // 원형큐 머리
+    uint8_t hightail;        // 원형큐 꼬리
+
     pcb_t PMv1_mem[MAX_PCB_SIZE];         // 최대 프로세스 수 만큼 만들기 8KB 정도 pcb의 배열
     uint8_t PMv1_lowqueue[MAX_PCB_SIZE];  // 프로세스 low q
     uint8_t PMv1_highqueue[MAX_PCB_SIZE]; // 프로세스 high q
@@ -65,6 +52,7 @@ pcb_t *creat_proc(PMv1_object *obj, void *task, uint8_t parid);
 uint8_t pm_qaddr(PMv1_object *queue, uint8_t type, uint8_t cmd, uint8_t val);
 pcb_t *pm_run(PMv1_object *obj);
 void pm_awake(PMv1_object *obj, uint8_t cmd, pcb_t *proc);
+void ptp(PMv1_object *obj, uint8_t who, uint8_t towho, int8_t msg[64]);
 
 // 전역 구조체 선언
 extern PMv1_object pm_object;

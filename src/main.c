@@ -78,9 +78,19 @@ void task_B()
 }
 
 /*
-    init 프로세스(pid = 1)
+    pid 0 : 루트 프로세스
+    pid 1 의 부모
 */
-void INIT_PROC(void)
+void ROOT(void)
+{
+    // 루트 프로세스
+}
+
+/*
+    pid 1 :init 프로세스
+    데몬들의 부모이자 모든 프로세스의 부모
+*/
+void INIT(void)
 {
     asm volatile("msr daifclr, #2");
 
@@ -108,6 +118,24 @@ void INIT_PROC(void)
     }
 
     puts("Goodbye, see you next time."); // 종료 메시지
+}
+
+/*
+    pid 2 : 네트워크 프로세스
+    첫 번째 데몬
+*/
+void NET(void)
+{
+    // 네트워크 관리자
+}
+
+/*
+    pid 3 : 디바이스 관리자
+    2번째 데몬
+*/
+void DEV(void)
+{
+    // 디바이스 관리자
 }
 
 // 커널 함수

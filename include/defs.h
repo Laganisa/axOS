@@ -41,5 +41,6 @@
 #define INITIAL_PROC_SIZE 0x80 // 초기 프로세스 할당 크기
 #define PROC_SIGNAL 0xFF       // low q를 확인할 차례라는 시그널
 #define PMV1_MAX_PROC 0xFF     // 프로세스 최대 수
+#define MAX_PTP_MSGBOX 0x10    // 프로세스간 메시지 통신 개수 제한, 이유 : 이러면 딱 1KB
 
 #endif

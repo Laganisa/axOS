@@ -12,7 +12,7 @@ PMv1_object pm_object;
 
 /*
     프로세스 생성
-    ! pid 생성을 오름차순으로
+    pid 생성을 오름차순으로
 */
 pcb_t *creat_proc(PMv1_object *obj, void *task, uint8_t parid)
 {
@@ -73,6 +73,7 @@ pcb_t *creat_proc(PMv1_object *obj, void *task, uint8_t parid)
 
 /* 주소를 주면 변환해서 내주는 코드
     주소 -> 실제 주소
+    pid
     type = 0 : low q로직
     type = 1 : high q로직
     cmd = 0 : 넣기
@@ -91,8 +92,9 @@ uint8_t pm_qaddr(PMv1_object *queue, uint8_t type, uint8_t cmd, uint8_t val)
         }
 
         if (queue->lownum == 0)
+        {
             return 0;
-
+        }
         uint8_t ret = queue->PMv1_lowqueue[queue->lowtail];
         queue->lowtail = (queue->lowtail + 1) & 255;
         queue->lownum--;
@@ -109,8 +111,9 @@ uint8_t pm_qaddr(PMv1_object *queue, uint8_t type, uint8_t cmd, uint8_t val)
         }
 
         if (queue->highnum == 0)
+        {
             return 0;
-
+        }
         uint8_t ret = queue->PMv1_highqueue[queue->hightail];
         queue->hightail = (queue->hightail + 1) & 255;
         queue->highnum--;
@@ -140,7 +143,7 @@ pcb_t *pm_run(PMv1_object *obj)
 
         if (data == PROC_SIGNAL)
         {
-            // signal 처리
+            // ! signal 처리
             return &obj->PMv1_mem[0];
         }
 
@@ -165,8 +168,36 @@ pcb_t *pm_run(PMv1_object *obj)
 
         return &obj->PMv1_mem[data];
     }
-
     return &obj->PMv1_mem[0];
+}
+
+/*
+    proc to proc 전송 함수
+    cmd = 0 : 메시지 전송 함수
+    cmd = 1 : 메시지 수신 함수
+    who가 towho에게 msg를 실행
+*/
+void ptp(PMv1_object *obj, uint8_t who, uint8_t towho, int8_t msg[64])
+{
+    pcb_t rece = obj->PMv1_mem[towho];
+    if (rece.is_msgbox == FALSE)
+    {
+        // 메시지 넣는 로직
+        rece.is_msgbox = TRUE;
+        rece.from = who;
+        for (int i = 0; i < 64; i++)
+        {
+            rece.msgbox[i] = msg[i];
+        }
+
+        // towho의 우선순위를 증가시켜 바로 입력 받을 수 있도록
+        pm_qaddr(obj, 0, 1, towho); // 대상자를 빼고
+        pm_qaddr(obj, 1, 0, towho); // 대상자를 넣고
+    }
+    else
+    {
+        // ! 예외 처리
+    }
 }
 
 /*
@@ -198,6 +229,7 @@ void pm_awake(PMv1_object *obj, uint8_t cmd, pcb_t *proc)
         {
             put_hex(ptr[i]); // PCB 앞부분 16바이트를 1바이트씩 다 찍어봐
         }
+        // ! 프로세스가 차지한 공간을 가비지 컬랙터에게 줌
 
         if (cmd == 1)
         {
