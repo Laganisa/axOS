@@ -8,7 +8,7 @@ LD = aarch64-linux-gnu-ld
 OBJCOPY = aarch64-linux-gnu-objcopy
 
 # 컴파일 플래그
-# -Iinclude 를 추가해서 헤더 파일을 편하게 찾게 했어!
+# -Iinclude 를 추가해서 헤더 파일을 편하게 찾기
 CFLAGS = -mcpu=cortex-a72 -ffreestanding -nostdlib -nostdinc -O0 -g -Iinclude
 ASFLAGS = -mcpu=cortex-a72
 LDFLAGS = -T linker.ld

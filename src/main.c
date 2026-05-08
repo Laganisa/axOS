@@ -7,6 +7,8 @@
 // 분리 파일
 #include "../include/asm.h"  // 어셈블리 함수가 있는 헤더
 #include "../include/defs.h" // 정의 헤더
+#include "../include/sect.h" // 메모리 매핑 헤더
+
 #include "../include/io.h"   // 입출력 헤더
 #include "../include/irq.h"  // 인터럽트 헤더 추가
 #include "../include/exce.h" // Exception handlers
@@ -123,6 +125,7 @@ void INIT(void)
 /*
     pid 2 : 네트워크 프로세스
     첫 번째 데몬
+
 */
 void NET(void)
 {
@@ -148,6 +151,7 @@ void main(void)
     // 인터럽트/타이머 초기화
     init_irq();
 
+    put_hex(sizeof(PMv1_object));
     puts("myOS kernel\n");                 // 부팅 메시지
     puts("'help' : list commands\n");      // 사용 가능한 명령어 확인
     puts("'end'  : exit\n");               // 시스템 나가기

@@ -40,4 +40,35 @@ int8_t token_hash(int8_t lang[26])
     // 해시함수의 테이블 주소를 포인터로 가져와서
     // 해시 테이블에 넣어두기
     // 결과적으로 이 함수의 리턴값은 헤싱된
+#include "../include/defs.h"
+#include "../include/io.h"
+#include "../include/fm.h"
+
+// init 함수
+
+void fm_init(uint64_t *addr)
+{
+    fm_record.base = addr;
+}
+
+// 파일 관리
+
+// 파일 생성
+
+// 파일 삭제
+
+// 파일 탐색
+
+// 파일 조작
+
+// 파일 정보 관리
+
+// 토큰으로 나누기
+
+// 파일 만들기
+
+// 해시 함수
+uint8_t hash()
+{
+    // 로직 계산하기
 }

@@ -85,9 +85,19 @@ el1_entry:
     msr VBAR_EL1, x0
 
     isb
+    
+    ldr x0, =bss_start
+    ldr x1, =bss_end
+    mov x2, #0
 
+clear_bss:
+    cmp x0, x1
+    b.ge clear_bss_done
+    str x2, [x0], #8
+    b clear_bss
+
+clear_bss_done:
     bl main
-
 
 hang:
     b hang

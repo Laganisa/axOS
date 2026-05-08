@@ -4,9 +4,8 @@
 #ifndef __PM_H__
 #define __PM_H__
 
-// pcb 33바이트
+// pcb 96바이트
 // 나중에 프로세스가 생성되고 레지스터 공간 따로 할당
-// 남는 공간이 40비트 정도
 typedef struct pcb_t
 {
     uint8_t id;         // 프로세스 id
@@ -15,11 +14,12 @@ typedef struct pcb_t
     uint16_t proc_info; // 프로세스 정보
     uint16_t mm_addr;   // 메모리 주소
 
-    uint32_t reg;       // 레지스터 주소값
-    bool is_msgbox;     // 메시지 박스가 차있는지
-    bool is_call;       // 자신에게 읽으라고 했는지
-    uint8_t from;       // 누구에게 왔는지
-    uint8_t msgbox[64]; // 메세지
+    uint32_t reg;          // 레지스터 주소값
+    uint8_t is_msgbox : 1; // 메시지 박스가 차있는지
+    uint8_t is_call : 1;   // 자신에게 읽으라고 했는지
+    uint8_t padding : 6;   // 패딩값
+    uint8_t from;          // 누구에게 왔는지
+    uint8_t msgbox[64];    // 메세지
 
     uint64_t sp; // 스택 포인터
     uint64_t pc; // 프로그램 카운터
@@ -27,7 +27,8 @@ typedef struct pcb_t
 
 typedef struct PMv1_object
 {
-    // 총 공간이 3KB 정도
+    uint64_t *base; // 바닥 주소
+    // 총 공간이 24KB 정도
     uint8_t proc_comocc : 4; // 그중에서 어떤 proc_occ 이 사용되지 않았는지
     uint8_t proc_comscj : 4; // 프로세서 pm_rum에 들어가는 관리하는
     uint8_t lownum;          // low에 들어있는 프로세스 수
@@ -48,6 +49,9 @@ typedef struct PMv1_object
 } PMv1_object;
 
 // 함수 선언
+
+// init 만들기
+
 pcb_t *creat_proc(PMv1_object *obj, void *task, uint8_t parid);
 uint8_t pm_qaddr(PMv1_object *queue, uint8_t type, uint8_t cmd, uint8_t val);
 pcb_t *pm_run(PMv1_object *obj);
