@@ -1,0 +1,29 @@
+# 개인/임시 파일
+temp/
+notes/
+*.log
+todo.md
+
+# 빌드 산출물
+build/
+*.o
+*.elf
+*.img
+*.bin
+*.map
+
+# IDE/에디터 개인 설정
+.vscode/
+.idea/
+*.swp
+*.swo
+*~                  # 백업 파일
+
+# OS 메타 파일
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 컴파일 보조 파일
+*.gch
+*.d
