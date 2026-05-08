@@ -43,4 +43,8 @@
 #define PMV1_MAX_PROC 0xFF     // 프로세스 최대 수
 #define MAX_PTP_MSGBOX 0x10    // 프로세스간 메시지 통신 개수 제한, 이유 : 이러면 딱 1KB
 
+// 파일 관련
+
+#define MAX_FILE_SIZE 0x4104 // 파일 최대 개수 16644 개
+
 #endif
