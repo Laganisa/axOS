@@ -1,12 +1,7 @@
 # axOS
 
-axalis의 운영체제
+Operating System with laganisa
 
-## 개발 구상
+[English READNE](.\assets\README.en.md)
 
-| 기계어 | 커널 | 프로그램 | 파일 |
-
-프로그램의 공간은 256MB정도
-파일의 공간은 16MB정도
-
-즉 총 크기 300MB 내외의 운영체제
+[한국어 README](.\assets\DETAIL.kr.md)

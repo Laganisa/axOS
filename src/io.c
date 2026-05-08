@@ -75,6 +75,7 @@ void gets(int8_t *s, int32_t max_len)
 }
 
 // PCB-related 전역 변수
+// ! 이거 왜 있음??????
 void *current_pcb_addr = 0;
 
 // 클리어
