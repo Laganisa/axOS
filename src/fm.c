@@ -45,44 +45,60 @@ int8_t token(int8_t lang[26])
 // 파일 관리
 
 // 파일 생성
-
-fcb_t *fm_creat(FMv1_record *reco, int8_t name[8], uint8_t path[26], uint8_t is_dir)
+// size는 B 단위로 받음
+fcb_t *fm_creat(FMv1_record *reco, int8_t name[8], uint8_t path[26], uint8_t size, uint8_t is_dir)
 {
+    // 이름을 패딩하고
+
     // 이름이 만들수 있는지 확인
     for (int i = 0; i < 8; i++)
     {
         if (name[i] == "." && i > 4)
         {
-            break;
+            break; // or 리턴 만들수 없는 파일
         }
     }
 
-    // 만들수 있는지 확인
+    fcb_t new_file;
+    uint16_t top_addr; // 맞나?
+    uint16_t mid_addr;
+    uint16_t bot_addr;
+
+    uint8_t new_depth;
 
     if (path[25]) // 3번째 경로인지
     {
-        fcb_t new_file = reco->FMv1_mem_S[1];
+        // ! 나중에
     }
     else if (path[17] == 0x20) // 2번째 경로인지
     {
-        fcb_t new_file = reco->FMv1_mem_M[1];
+        // ! 나중에
     }
-    else if (path[8] == 0x20) // 첫번째 경로인지
+    else if (path[8] == 0x20 && reco->last_addr < 64) // 첫번째 경로인지
     {
-        fcb_t new_file = reco->FMv1_mem_L[reco->last_addr]; // 마지막에 준 번호로 주기
-        reco->last_addr += 1;
+        new_file = reco->FMv1_mem_L[reco->last_addr]; // 마지막에 준 번호로 주기
+        reco->last_addr += 1;                         // 마지막 할당한 값을 하나 증가
         reco->all_num += 1;
     }
     else
     {
         return 0; // 맞지 않는 경로 값
     }
+
+    // 새 파일에 넣는 로직
+
+    // 이름 넣기
+    for (int i = 0; i < MAX_FILE_NAME; i++)
+    {
+        new_file.alias[i] = name[i];
+    }
+    new_file.depth = new_depth;
+    new_file.lens = 1;
 }
 
 // 파일 삭제
 
 // 파일 탐색
-
 uint8_t fm_find(FMv1_record *reco)
 {
 }

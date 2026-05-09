@@ -12,8 +12,8 @@ typedef struct fcb_t
     // 1. 파일 이름 (8 bytes)
     int8_t alias[MAX_FILE_NAME];
 
-    uint64_t lens : 6;   // 파일 길이 64바이트가 기준
-    uint64_t depth : 1;  // 파일 깊이
+    uint64_t lens : 5;   // 파일 길이 128바이트가 기준
+    uint64_t depth : 2;  // 파일 깊이
     uint64_t is_dir : 1; // 디렉토리 여부
 
     uint64_t me_auth : 3;  // 나의 권한
