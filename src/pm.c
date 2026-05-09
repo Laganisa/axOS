@@ -8,8 +8,6 @@
 
 extern void _proc(uint64_t *reg_val); // proc와 연결
 
-PMv1_object pm_object;
-
 /*
     프로세스 생성
     pid 생성을 오름차순으로

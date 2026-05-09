@@ -5,8 +5,6 @@
 #include "../include/asm.h"
 
 // 구조체 선언
-MMv5_stack mm_stack;
-MMv5_substack mm_substack;
 
 // ! 수정 사항 존재
 /*
@@ -30,7 +28,7 @@ uint8_t MMv5_regu_push(MMv5_stack *stack, uint8_t val)
     return result;   // 할당된 위치 알려주기
 }
 // 서브스택의 푸쉬
-uint8_t MMv5_regu_substack_push(MMv5_substack *stack, uint8_t val)
+uint8_t MMv5_regu_substack_push(MMv5_stack *stack, uint8_t val)
 {
     stack->MMv5_submem[stack->sp] = val;
     stack->sp++;
@@ -87,7 +85,7 @@ void mm_init(MMv5_stack *stack, uint64_t addr)
     cmd == 2 : uint16_t(어느 주소를 찾고 싶은지), uint16_t 참조하는 간접 주소 -> uint64_t
     -> 성공시 1 아닐시 0을 리턴함
 */
-void *mm_run(MMv5_stack *stack, MMv5_substack *substack, int8_t cmd, uint16_t val16, uint16_t indi_addr)
+void *mm_run(MMv5_stack *stack, MMv5_stack *substack, int8_t cmd, uint16_t val16, uint16_t indi_addr)
 {
     // 메모리의 값을 관리
 
@@ -123,7 +121,7 @@ void *mm_run(MMv5_stack *stack, MMv5_substack *substack, int8_t cmd, uint16_t va
     else if (cmd == 1)
     {
         // ! 여기에 확인 로직 넣어야함 리턴 인자값도 변경해야함
-        uint8_t remain_Byte = MMv5_regu_pop(&mm_stack, val16);                         // 남은 바이트 확인, 이미 기존 값은 없어짐
+        uint8_t remain_Byte = MMv5_regu_pop(stack, val16);                             // 남은 바이트 확인, 이미 기존 값은 없어짐
         if (cnt(remain_Byte & BIT_EVEN8_t) <= 1 && cnt(remain_Byte & BIT_ODD8_t) <= 1) // 비트가 2개가 있는지 확인
         {
             if ((cnt(remain_Byte & 0x0F) ^ cnt(remain_Byte & 0xF0) != 0) || (cnt(remain_Byte & 0x33) != 1)) // 바이트 조각이 하나만 있는지 또는 다 차 있는지확인

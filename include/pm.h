@@ -1,4 +1,3 @@
-#include "../include/types.h"
 #include "../include/defs.h"
 
 #ifndef __PM_H__
@@ -59,6 +58,6 @@ void pm_awake(PMv1_object *obj, uint8_t cmd, pcb_t *proc);
 void ptp(PMv1_object *obj, uint8_t who, uint8_t towho, int8_t msg[64]);
 
 // 전역 구조체 선언
-extern PMv1_object pm_object;
+#define pm_object (*(PMv1_object *)PM_ADDR_START)
 
 #endif

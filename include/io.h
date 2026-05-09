@@ -1,8 +1,8 @@
-#include "../include/types.h"
 #include "../include/defs.h"
+#include "../include/sect.h"
 
 #ifndef __IO_H__
-#define __IO_H_
+#define __IO_H__
 
 void uart_init(void);
 void putchar(int8_t c);

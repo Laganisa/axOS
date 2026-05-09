@@ -1,5 +1,3 @@
-#include "../include/sect.h"
-
 #ifndef __DEFS_H__
 #define __DEFS_H__
 
@@ -27,6 +25,10 @@
 // 파일 관리자의 크기를 뺀 값 나중에 바꿔야함
 #define END_PROC_ADDR 0x5010A400 // 프로세서 끝 주소 여기부터 파일 영역
 
-#define MAX_FCB_SIZE 16644 // 파일 크기
+#define MAX_FCB_SIZE_L 4     // 파일 크기
+#define MAX_FCB_SIZE_M 256   // 파일 크기
+#define MAX_FCB_SIZE_S 16384 // 파일 크기
+
+#define MAX_FILE_NAME 8 // 최대 파일 이름 길이
 
 #endif

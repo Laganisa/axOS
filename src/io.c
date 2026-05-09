@@ -1,5 +1,6 @@
 #include "../include/types.h"
 #include "../include/defs.h"
+#include "../include/sect.h"
 
 // UART 초기화
 void uart_init(void)
