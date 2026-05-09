@@ -41,7 +41,7 @@ typedef struct FMv1_record
 {
     uint64_t *base; // 바닥 주소
 
-    uint64_t cur_ptr : 16;  // 보고 있는 주소
+    uint64_t cur_ptr : 16;  // 보고 있는 주소 읽을때 씀
     uint64_t all_num : 16;  // 모든 파일의 수를 계산
     uint64_t last_addr : 6; // 마지막으로 준 주소
     uint64_t padding : 26;

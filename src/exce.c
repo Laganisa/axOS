@@ -53,10 +53,12 @@ void curr_el_spx_sync()
                 pcb_t **current_proc_ptr = (pcb_t **)get_current_proc_addr();
                 pcb_t *current = *current_proc_ptr;
 
+                /*
                 puts("\n[EXIT] Current PCB Addr: ");
                 put_hex((uint64_t)current); // PCB 구조체 자체의 주소
                 puts(" | ID before: ");
                 put_hex(current->id);
+                */
 
                 // pm_awake(&pm_object, 1, *(pcb_t **)get_current_proc_addr());
                 pm_awake(&pm_object, 1, current);
@@ -65,6 +67,7 @@ void curr_el_spx_sync()
                 pcb_t *next = pm_run(&pm_object);
                 current_proc = next;
 
+                /*
                 puts("\n[EXIT] Next PCB Addr: ");
                 put_hex((uint64_t)next); // 다음 실행될 놈의 주소
                 puts(" | Next ID: ");
@@ -72,6 +75,7 @@ void curr_el_spx_sync()
 
                 puts("\n[EXIT] Check Current ID after awake: ");
                 put_hex(current->id);
+                */
 
                 new_context(next->sp);
             }

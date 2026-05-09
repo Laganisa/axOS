@@ -49,11 +49,11 @@ pcb_t *creat_proc(PMv1_object *obj, void *task, uint8_t parid)
 
     // 메모리 로직
     // 128KB를 할당 리턴 된 메모리 스택 주소를 받음
-    obj->PMv1_mem[pid].mm_addr = (uint16_t)(uintptr_t)mm_run(&mm_stack, &mm_substack, 0, INITIAL_PROC_SIZE, 0);
+    obj->PMv1_mem[pid].mm_addr = mm_creat(&mm_stack, INITIAL_PROC_SIZE);
 
     // 할당 후 주소를 줌
     // 자신의 주소를 알아내고
-    uint64_t real_addr = (uint64_t)(uintptr_t)mm_run(&mm_stack, &mm_substack, 2, obj->PMv1_mem[pid].mm_addr, 0);
+    uint64_t real_addr = mm_find(&mm_stack, obj->PMv1_mem[pid].mm_addr, 0);
     uint64_t *reg_val = (uint64_t *)(real_addr + (INITIAL_PROC_SIZE << 10) - 256);
     obj->PMv1_mem[pid].reg = (INITIAL_PROC_SIZE << 10) - 256; // 레지스터 위치
 
@@ -77,46 +77,55 @@ pcb_t *creat_proc(PMv1_object *obj, void *task, uint8_t parid)
     cmd = 0 : 넣기
     cmd = 1 : 빼기
 */
+uint8_t pm_low(PMv1_object *queue, uint8_t cmd, uint8_t val)
+{
+    if (cmd == 0)
+    {
+        queue->PMv1_lowqueue[queue->lowhead] = val;
+        queue->lowhead = (queue->lowhead + 1) & 255;
+        queue->lownum++;
+        return 0;
+    }
+
+    if (queue->lownum == 0)
+    {
+        return 0;
+    }
+    uint8_t ret = queue->PMv1_lowqueue[queue->lowtail];
+    queue->lowtail = (queue->lowtail + 1) & 255;
+    queue->lownum--;
+    return ret;
+}
+
+uint8_t pm_high(PMv1_object *queue, uint8_t cmd, uint8_t val)
+{
+    if (cmd == 0)
+    {
+        queue->PMv1_highqueue[queue->highhead] = val;
+        queue->highhead = (queue->highhead + 1) & 255;
+        queue->highnum++;
+        return 0;
+    }
+
+    if (queue->highnum == 0)
+    {
+        return 0;
+    }
+    uint8_t ret = queue->PMv1_highqueue[queue->hightail];
+    queue->hightail = (queue->hightail + 1) & 255;
+    queue->highnum--;
+    return ret;
+}
+
+// ! 정확히 작동하는지 확인 필요
 uint8_t pm_qaddr(PMv1_object *queue, uint8_t type, uint8_t cmd, uint8_t val)
 {
     if (type == 0)
     {
-        if (cmd == 0)
-        {
-            queue->PMv1_lowqueue[queue->lowhead] = val;
-            queue->lowhead = (queue->lowhead + 1) & 255;
-            queue->lownum++;
-            return 0;
-        }
-
-        if (queue->lownum == 0)
-        {
-            return 0;
-        }
-        uint8_t ret = queue->PMv1_lowqueue[queue->lowtail];
-        queue->lowtail = (queue->lowtail + 1) & 255;
-        queue->lownum--;
-        return ret;
+        return pm_low(queue, cmd, val);
     }
-    else
-    {
-        if (cmd == 0)
-        {
-            queue->PMv1_highqueue[queue->highhead] = val;
-            queue->highhead = (queue->highhead + 1) & 255;
-            queue->highnum++;
-            return 0;
-        }
 
-        if (queue->highnum == 0)
-        {
-            return 0;
-        }
-        uint8_t ret = queue->PMv1_highqueue[queue->hightail];
-        queue->hightail = (queue->hightail + 1) & 255;
-        queue->highnum--;
-        return ret;
-    }
+    return pm_high(queue, cmd, val);
 }
 
 // 프로세스 실행 함수
@@ -127,7 +136,7 @@ pcb_t *pm_run(PMv1_object *obj)
 
     if (obj->highnum != 0)
     {
-        data = pm_qaddr(obj, 1, 1, 0);
+        data = pm_high(obj, 1, 0);
 
         puts("\nNext Proc ID: ");
         put_hex(data);
@@ -150,7 +159,7 @@ pcb_t *pm_run(PMv1_object *obj)
 
     else if (obj->lownum != 0)
     {
-        data = pm_qaddr(obj, 0, 1, 0);
+        data = pm_low(obj, 1, 0);
 
         // 다음 프로세스 확인
         puts("\nNext Proc ID: ");
@@ -189,8 +198,8 @@ void ptp(PMv1_object *obj, uint8_t who, uint8_t towho, int8_t msg[64])
         }
 
         // towho의 우선순위를 증가시켜 바로 입력 받을 수 있도록
-        pm_qaddr(obj, 0, 1, towho); // 대상자를 빼고
-        pm_qaddr(obj, 1, 0, towho); // 대상자를 넣고
+        pm_low(obj, 1, towho);  // 대상자를 빼고
+        pm_high(obj, 0, towho); // 대상자를 넣고
     }
     else
     {
@@ -210,28 +219,30 @@ void pm_awake(PMv1_object *obj, uint8_t cmd, pcb_t *proc)
     // pm_run의 대기 큐에 삽입
     if (cmd == 0)
     {
-        pm_qaddr(&pm_object, 0, 0, proc->id);
+        pm_low(&pm_object, 0, proc->id);
     }
     // pm_run에서 삭제
     else
     {
-        puts("좀비로 만들기");
+        puts("make zombie");
         // 일단 비트를 수정하기
         proc->proc_info = cmd;  // cmd 값에 따라 달라짐
         proc->b_id = proc->id;  // 전 id를 id로 변경
         proc->id = PROC_SIGNAL; // 시그널값으로 변경
 
         uint8_t *ptr = (uint8_t *)proc;
-        puts("\n[DEBUG] Raw PCB memory: ");
+        /*
+        puts("\n Raw PCB memory: ");
         for (int i = 0; i < 16; i++)
         {
             put_hex(ptr[i]); // PCB 앞부분 16바이트를 1바이트씩 다 찍어봐
         }
+        */
         // ! 프로세스가 차지한 공간을 가비지 컬랙터에게 줌
 
         if (cmd == 1)
         {
-            pm_qaddr(&pm_object, 0, 0, proc->id);
+            pm_low(&pm_object, 0, proc->id);
         }
         else if (cmd == 2)
         {

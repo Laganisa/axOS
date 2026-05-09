@@ -46,23 +46,30 @@ int8_t token(int8_t lang[26])
 
 // 파일 생성
 // size는 B 단위로 받음
-fcb_t *fm_creat(FMv1_record *reco, int8_t name[8], uint8_t path[26], uint8_t size, uint8_t is_dir)
+// 최대 4KB = 4096B
+fcb_t *fm_creat(FMv1_record *reco, int8_t name[8], uint8_t path[26], uint8_t size, uint8_t ok_dir)
 {
-    // 이름을 패딩하고
+    // 확인
+    if (size > 4096)
+    {
+        return 0;
+    }
+    // ! 이름을 패딩하고
 
     // 이름이 만들수 있는지 확인
     for (int i = 0; i < 8; i++)
     {
-        if (name[i] == "." && i > 4)
+        if (name[i] == '.' && i > 4)
         {
             break; // or 리턴 만들수 없는 파일
         }
     }
 
-    fcb_t new_file;
+    fcb_t *new_file;
     uint16_t top_addr; // 맞나?
     uint16_t mid_addr;
     uint16_t bot_addr;
+    uint8_t auth; // 권한
 
     uint8_t new_depth;
 
@@ -76,8 +83,9 @@ fcb_t *fm_creat(FMv1_record *reco, int8_t name[8], uint8_t path[26], uint8_t siz
     }
     else if (path[8] == 0x20 && reco->last_addr < 64) // 첫번째 경로인지
     {
-        new_file = reco->FMv1_mem_L[reco->last_addr]; // 마지막에 준 번호로 주기
-        reco->last_addr += 1;                         // 마지막 할당한 값을 하나 증가
+        // ! 디렉토리에 규칙아래 같은 이름이 있는지 확인
+        new_file = &(reco->FMv1_mem_L[reco->last_addr]); // 마지막에 준 번호로 주기
+        reco->last_addr += 1;                            // 마지막 할당한 값을 하나 증가
         reco->all_num += 1;
     }
     else
@@ -90,10 +98,17 @@ fcb_t *fm_creat(FMv1_record *reco, int8_t name[8], uint8_t path[26], uint8_t siz
     // 이름 넣기
     for (int i = 0; i < MAX_FILE_NAME; i++)
     {
-        new_file.alias[i] = name[i];
+        new_file->alias[i] = name[i];
     }
-    new_file.depth = new_depth;
-    new_file.lens = 1;
+    new_file->is_dir = ok_dir; // 디렉토리 여부
+    new_file->depth = new_depth;
+    new_file->lens = size >> 7;
+    // 위치 로직
+    new_file->ppdir_addr = top_addr;
+    new_file->pdir_addr = mid_addr;
+    new_file->me_addr = bot_addr;
+    // 날짜 로직
+    // ! 나중에 짜기
 }
 
 // 파일 삭제

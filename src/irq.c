@@ -21,15 +21,15 @@ pcb_t **get_current_proc_addr()
 
 uint64_t irq_handler_main(pcb_t *proc, uint64_t current_sp)
 {
-    puts("\nenter irq_handler_main\n");
+    puts("\nirq_handler_main\n");
 
     uint64_t elr, esr;
     asm volatile("mrs %0, elr_el1" : "=r"(elr));
     asm volatile("mrs %0, esr_el1" : "=r"(esr));
 
-    puts("Enter IRQ. ELR: ");
+    puts("IRQ. ELR: ");
     put_hex(elr);
-    puts(" ESR: ");
+    puts("ESR: ");
     put_hex(esr);
 
     uint32_t iar = *(volatile uint32_t *)(GIC_CPU_BASE + 0x0C);
@@ -43,7 +43,7 @@ uint64_t irq_handler_main(pcb_t *proc, uint64_t current_sp)
         if (next == PROC_SIGNAL)
         {
             pm_awake(&pm_object, 0, proc); // 현재 proc를 넣고
-            mm_run(&mm_stack, &mm_substack, 1, proc->mm_addr, 0);
+            mm_free(&mm_stack, &mm_substack, proc->mm_addr);
             current_proc = pm_run(&pm_object); // 다른걸 꺼내자
         }
         else
@@ -102,7 +102,6 @@ void init_timer()
 
 void init_gic()
 {
-    // puts("[GIC] ===== Starting GIC Init =====\n");
 
     *(volatile uint32_t *)(GIC_DIST_BASE + 0x000) = 0;
     // puts("[GIC] Distributor OFF\n");
@@ -148,7 +147,6 @@ void init_gic()
 
 void init_irq()
 {
-    // puts("\n========== IRQ Initialization ==========\n");
 
     // 1. 벡터 테이블 등록 (CPU에게 어디로 점프할지 알려줌)
     init_vectors();
@@ -169,8 +167,6 @@ void init_irq()
     // CPU의 인터럽트를 허용
     asm volatile("msr daifclr, #2");
     // puts("[IRQ] DAIF IRQ unmasked\n");
-
-    // puts("========== IRQ Init Complete ==========\n\n");
 
     // 소프트웨어에서 강제로 인터럽트 발생 (타이머 대신)
     // puts("[TEST] Forcing software interrupt...\n");
