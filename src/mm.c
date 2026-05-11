@@ -194,7 +194,7 @@ void *mm_run(MMv5_stack *stack, MMv5_stack *substack, int8_t cmd, uint16_t val16
 uint16_t mm_creat(MMv5_stack *stack, uint16_t val16)
 {
     // cmd = 0 할당 공간 할당 -> uint16_t 의 스택 포인터 주소 리턴
-    uint8_t data = (val16 >> 6) & 0x7; // 7,8,9로 쪼갠 데이터
+    uint8_t data = (val16 >> 6) & 0x7; // 7,8,9로 쪼갠 데이터 즉 많아봤자 512KB
 
     if (data != 0) // 주어진 범위를 초과하지 않았으면
     {

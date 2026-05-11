@@ -3,6 +3,7 @@
 #ifndef __SECT_H__
 #define __SECT_H__
 
+#pragma region QEMU_
 // QEMU virt 머신의 PL011 UART 주소
 #define UART0_BASE 0x09000000
 #define UART0_DR ((volatile uint32_t *)(UART0_BASE + 0x00))
@@ -25,6 +26,8 @@
 
 // 인터럽트 종료 알림 레지스터
 #define GIC_INTERFACE_EOI (*(volatile uint32_t *)(GIC_CPU_BASE + 0x10))
+
+#pragma endregion
 
 #define ALIGN_16(addr) (((addr) + 15) & ~15)
 

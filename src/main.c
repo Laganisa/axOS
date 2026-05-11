@@ -147,7 +147,7 @@ void main(void)
     // 하드웨어 초기화
     uart_init();
     // 관리자 초기화
-    mm_init(&mm_stack, END_KERNEL_ADDR);
+    mm_init(&mm_stack, MM_ADDR_START);
     // 인터럽트/타이머 초기화
     init_irq();
 

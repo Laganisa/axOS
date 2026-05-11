@@ -1,8 +1,6 @@
 #ifndef __DEFS_H__
 #define __DEFS_H__
 
-#define END_KERNEL_ADDR 0x40100000 // 커널 끝 주소
-
 // 산수 관련
 
 // 계산 관련
@@ -13,6 +11,8 @@
 #define BIT_EVEN64_t 0xAAAAAAAAAAAAAAAA // 64비트 짝수 비트 검정
 
 // 프로세스 관련
+#pragma region Proc
+
 #define MAX_PCB_SIZE 0x100     // 최대 pcb 수 256개 0은 pid 0 운영체제 꺼
 #define MAX_PCB_BITSIZE 0x04   // 최대 pcb bit 수 4개 이유는 1비트당 하나의 프로세서이니까
 #define INITIAL_PROC_SIZE 0x80 // 초기 프로세스 할당 크기
@@ -20,15 +20,20 @@
 #define PMV1_MAX_PROC 0xFF     // 프로세스 최대 수
 #define MAX_PTP_MSGBOX 0x10    // 프로세스간 메시지 통신 개수 제한, 이유 : 이러면 딱 1KB
 
-// 파일 & 디렉토리 관련
+#pragma endregion
 
-// 파일 관리자의 크기를 뺀 값 나중에 바꿔야함
-#define END_PROC_ADDR 0x5010A400 // 프로세서 끝 주소 여기부터 파일 영역
-
-#define MAX_FCB_SIZE_L 4     // 파일 크기
-#define MAX_FCB_SIZE_M 256   // 파일 크기
-#define MAX_FCB_SIZE_S 16384 // 파일 크기
+// 파일 관리자 관련
+#pragma region file
 
 #define MAX_FILE_NAME 8 // 최대 파일 이름 길이
+
+// V2 파일 관리자 - 1MB 파일 지원
+#define MAX_FILE_SIZE 0x100000 // 최대 파일 크기: 1MB
+#define MAX_DIR_SIZE 0x200000  // 디렉토리당 최대 크기: 2MB
+#define MAX_FCB_SIZE_L 64      // 대형 디렉토리 개수
+#define MAX_FCB_SIZE_M 256     // 중형 디렉토리 개수
+#define MAX_FCB_SIZE_S 8192    // 소형 파일 개수 (2MB / 256B per FCB)
+
+#pragma endregion
 
 #endif
