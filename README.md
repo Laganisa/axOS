@@ -1,7 +1,12 @@
 # axOS
 
-Experimental AArch64 operating system
+실험용 toyKERNEL
 
-[English READNE](.\assets\README.en.md)
+## 소개
 
-[한국어 README](.\assets\DETAIL.kr.md)
+종류 : 마이크로커널
+
+## 구주도
+
+더 많은 정보
+[DETAIL](.\assets\DETAIL.md)

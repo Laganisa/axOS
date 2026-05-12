@@ -74,11 +74,12 @@ typedef struct fcb_t
     // /0 또한 포함
     int8_t alias[MAX_FILE_NAME + 1];
 
-    uint8_t fid; // 파일 id
+    uint16_t lens : 11; // 파일 길이 (1KB 단위, 최대 1MB)
+    uint16_t fid : 5;   // 파일 id
 
-    uint64_t lens : 12;  // 파일 길이 (1KB 단위, 최대 1MB)
-    uint64_t depth : 3;  // 파일 깊이 (0~2)
-    uint64_t is_dir : 1; // 디렉토리 여부
+    uint64_t padding : 12; // 패딩
+    uint64_t depth : 3;    // 파일 깊이 (0~2)
+    uint64_t is_dir : 1;   // 디렉토리 여부
 
     uint64_t me_auth : 3;  // 나의 권한
     uint64_t you_auth : 3; // 너의 권한

@@ -25,26 +25,38 @@ void fm_init(uint64_t *addr)
    3/3/3으로 쪼개고 차이를 저장하기
    매핑 테이블도 필요함
 */
-int8_t token(int8_t lang[27])
+// ! 수정 필요
+uint16_t token(int8_t segment[8])
 {
-    int8_t tokn[9];
-
-    for (int i = 0; i < 3; i++)
+    // 1. 첫 글자 보정 (모음 -> 자음)
+    int8_t first = segment[0];
+    if (first == 65 || first == 69 || first == 73 || first == 79 || first == 85)
     {
-        for (int j = 0; j < 3; j++)
-        {
-            tokn[3 * i + j] = lang[j + 9 * i];
-        }
+        first -= 1;
     }
 
-    int8_t carve_lang = tokn[0]; // 해시에 넣을거
-    tokn[0] - tokn[1];
-    // 토큰의 차이들을 저장하기 공백은 제외
-    // 공백이 나오면 '.'이 나올 때까지 가기
+    // 2. 차이값 계산 (첫 번째 차이: 1글자-2글자, 두 번째 차이: 2글자-3글자)
+    // 공백(0x20)이나 점('.')이 오면 차이를 0으로 처리하거나 예외처리
+    int8_t diff1 = 0;
+    int8_t diff2 = 0;
 
-    // 현재 토큰의 첫 글자를 다른 곳에 저장하고
-    // 매핑 테이블이 모음이 속해있는 문자를 자음이 속한 문자로 매핑하기
-    // 2번째 부터 그 차이를 적어나가는 식으로
+    if (segment[1] != 0x20 && segment[1] != '.')
+    {
+        diff1 = segment[1] - segment[0];
+    }
+    if (segment[2] != 0x20 && segment[2] != '.')
+    {
+        diff2 = segment[2] - segment[1];
+    }
+
+    // 3. 4비트 패킹 (하위 4비트만 추출하여 데이터 손실 방지)
+    // 0xF(1111)와 AND 연산하여 4비트 범위를 강제함
+    uint8_t packed_diffs = ((diff1 & 0x0F) << 4) | (diff2 & 0x0F);
+
+    // 4. 최종 16비트 결과 생성 (첫 글자 8bit + 차이들 8bit)
+    uint16_t result = (uint16_t)(first << 8) | packed_diffs;
+
+    return result;
 }
 
 //  init 함수
@@ -266,14 +278,8 @@ bool fm_check(FMv2_record *reco, uint8_t cmd, int8_t path[27])
         {
             // 루트 디렉토리인 경우
             // 매핑 테이블에서 루트 디렉토리에 해당하는 값이 있는지 확인
-            for (int i = 0; i < 16; i++)
-            {
-                if (reco->mapping[0][i][16] == 0)
-                {
-                    // 빈 공간 발견
-                    break;
-                }
-            }
+
+            uint64_t temp; // 여기에 token 함수를 통과한 값을 넣어서 매핑 테이블에서 확인하기
         }
         else if (dir_count == 1)
         {
