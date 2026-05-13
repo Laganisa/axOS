@@ -174,6 +174,10 @@ void fm_list(FMv2_record *reco, int8_t path[27])
     // ! 나중에
 }
 
+void fm_excute(FMv2_record *reco)
+{
+}
+
 //  경로 유효성 검사
 /*
     규칙에 따라 경로가 유효한지 확인
