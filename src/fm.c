@@ -105,8 +105,6 @@ fcb_t *fm_creat(FMv2_record *reco, int8_t name[8], uint8_t path[27], uint32_t si
     uint8_t new_depth = 0;
     uint8_t auth; // 권한
 
-    uint8_t new_depth;
-
     if (fm_check(reco, 0, path) == FALSE)
     {
         return 0; // 경로가 유효하지 않음
@@ -117,7 +115,7 @@ fcb_t *fm_creat(FMv2_record *reco, int8_t name[8], uint8_t path[27], uint32_t si
     if (path[8] == 0x20) // [Case 1] 루트 직속 (Depth 0)
     {
         if (reco->last_addr >= 16)
-            return 2; // 공간 부족
+            return 0; // 공간 부족
         if (fm_check(reco, 0, path) == FALSE)
             return 0; // 중복 확인
 
@@ -139,7 +137,7 @@ fcb_t *fm_creat(FMv2_record *reco, int8_t name[8], uint8_t path[27], uint32_t si
         fcb_t *parent_dir = &(reco->FMv2_mem[pos_dir1][16][16]);
 
         if (parent_dir->last_addr >= 16)
-            return 2; // 부모 디렉토리 꽉 참
+            return 0; // 부모 디렉토리 꽉 참
         if (fm_check(reco, 1, path) == FALSE)
             return 0; // 중복 확인
 
@@ -184,7 +182,7 @@ fcb_t *fm_creat(FMv2_record *reco, int8_t name[8], uint8_t path[27], uint32_t si
 
     reco->all_num += 1;
 
-    return (uintptr_t)new_file; // 포인터 반환
+    return new_file; // 포인터 반환
 }
 
 // 파일 삭제
@@ -289,7 +287,7 @@ fcb_t *fm_delete(FMv2_record *reco, int8_t path[27])
 
     reco->all_num -= 1;
 
-    return (uintptr_t)target_file;
+    return target_file;
 }
 
 // 파일 목록 조회
@@ -317,12 +315,30 @@ void fm_list(FMv2_record *reco, int8_t path[27])
             if (current_file->is_alloc)
             {
                 // 파일 정보 출력
+                // 1. 파일 이름 출력
                 for (int j = 0; j < MAX_FILE_NAME; j++)
                 {
                     if (current_file->alias[j] != 0x00 && current_file->alias[j] != 0x20)
-                        io_printf("%c", current_file->alias[j]);
+                    {
+                        puts(current_file->alias[j]); // %c 대신 문자 출력 함수 사용
+                    }
                 }
-                io_printf(" [%s] %uKB\n", current_file->is_dir ? "DIR" : "FILE", current_file->lens);
+
+                // 2. 타입 및 크기 출력 (Hex 버전)
+                puts(" [");
+                if (current_file->is_dir)
+                {
+                    puts("DIR");
+                }
+                else
+                {
+                    puts("FILE");
+                }
+                puts("] 0x");
+
+                put_hex(current_file->lens); // 10진수 %u 대신 hex로 출력
+                puts("KB");
+                puts("\n"); // puts(\n)이 된다고 했으니 줄바꿈 처리
             }
         }
     }
@@ -346,12 +362,30 @@ void fm_list(FMv2_record *reco, int8_t path[27])
             if (current_file->is_alloc)
             {
                 // 파일 정보 출력
+                // 1. 파일 이름 출력
                 for (int j = 0; j < MAX_FILE_NAME; j++)
                 {
                     if (current_file->alias[j] != 0x00 && current_file->alias[j] != 0x20)
-                        io_printf("%c", current_file->alias[j]);
+                    {
+                        puts(current_file->alias[j]); // %c 대신 문자 출력 함수 사용
+                    }
                 }
-                io_printf(" [%s] %uKB\n", current_file->is_dir ? "DIR" : "FILE", current_file->lens);
+
+                // 2. 타입 및 크기 출력 (Hex 버전)
+                puts(" [");
+                if (current_file->is_dir)
+                {
+                    puts("DIR");
+                }
+                else
+                {
+                    puts("FILE");
+                }
+                puts("] 0x");
+
+                put_hex(current_file->lens); // 10진수 %u 대신 hex로 출력
+                puts("KB");
+                puts("\n"); // puts(\n)이 된다고 했으니 줄바꿈 처리
             }
         }
     }
@@ -376,12 +410,30 @@ void fm_list(FMv2_record *reco, int8_t path[27])
             if (current_file->is_alloc)
             {
                 // 파일 정보 출력
+                // 1. 파일 이름 출력
                 for (int j = 0; j < MAX_FILE_NAME; j++)
                 {
                     if (current_file->alias[j] != 0x00 && current_file->alias[j] != 0x20)
-                        io_printf("%c", current_file->alias[j]);
+                    {
+                        puts(current_file->alias[j]); // %c 대신 문자 출력 함수 사용
+                    }
                 }
-                io_printf(" [%s] %uKB\n", current_file->is_dir ? "DIR" : "FILE", current_file->lens);
+
+                // 2. 타입 및 크기 출력 (Hex 버전)
+                puts(" [");
+                if (current_file->is_dir)
+                {
+                    puts("DIR");
+                }
+                else
+                {
+                    puts("FILE");
+                }
+                puts("] 0x");
+
+                put_hex(current_file->lens); // 10진수 %u 대신 hex로 출력
+                puts("KB");
+                puts("\n"); // puts(\n)이 된다고 했으니 줄바꿈 처리
             }
         }
     }
