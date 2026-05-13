@@ -85,6 +85,7 @@ void mm_init(MMv5_stack *stack, uint64_t addr)
     cmd == 2 : uint16_t(어느 주소를 찾고 싶은지), uint16_t 참조하는 간접 주소 -> uint64_t
     -> 성공시 1 아닐시 0을 리턴함
 */
+/*
 void *mm_run(MMv5_stack *stack, MMv5_stack *substack, int8_t cmd, uint16_t val16, uint16_t indi_addr)
 {
     // 메모리의 값을 관리
@@ -190,6 +191,7 @@ void *mm_run(MMv5_stack *stack, MMv5_stack *substack, int8_t cmd, uint16_t val16
         return (void *)(uintptr_t)0; // 없는 명령입니다.
     }
 }
+*/
 
 uint16_t mm_creat(MMv5_stack *stack, uint16_t val16)
 {
