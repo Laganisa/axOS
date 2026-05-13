@@ -3,6 +3,8 @@
 
 // 산수 관련
 
+#define abs(x) ((x) < 0 ? -(x) : (x))
+
 // 계산 관련
 #define BIT_ODD8_t 0x55  // 8비트 홀수 비트 검정
 #define BIT_EVEN8_t 0xAA // 8비트 짝수 비트 검정
@@ -30,9 +32,8 @@
 // V2 파일 관리자 - 1MB 파일 지원
 #define MAX_FILE_SIZE 0x100000 // 최대 파일 크기: 1MB
 #define MAX_DIR_SIZE 0x200000  // 디렉토리당 최대 크기: 2MB
-#define MAX_FCB_SIZE_L 64      // 대형 디렉토리 개수
-#define MAX_FCB_SIZE_M 256     // 중형 디렉토리 개수
-#define MAX_FCB_SIZE_S 8192    // 소형 파일 개수 (2MB / 256B per FCB)
+#define MAX_FCB_file 0x10      // FCB 최대 수 (16개)
+#define MAX_FCB_dir 0x04       // 디렉토리 최대 수 4개
 
 #pragma endregion
 

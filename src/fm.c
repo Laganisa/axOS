@@ -42,11 +42,11 @@ uint16_t token(int8_t segment[8])
 
     if (segment[1] != 0x20 && segment[1] != '.')
     {
-        diff1 = segment[1] - segment[0];
+        diff1 = abs(segment[1] - segment[0]);
     }
     if (segment[2] != 0x20 && segment[2] != '.')
     {
-        diff2 = segment[2] - segment[1];
+        diff2 = abs(segment[2] - segment[1]);
     }
 
     // 3. 4비트 패킹 (하위 4비트만 추출하여 데이터 손실 방지)
@@ -100,10 +100,9 @@ fcb_t *fm_creat(FMv2_record *reco, int8_t name[8], uint8_t path[27], uint32_t si
         }
     }
 
-    fcb_t *new_file;
-    uint16_t top_addr; // 맞나?
-    uint16_t mid_addr;
-    uint16_t bot_addr;
+    fcb_t *new_file = NULL; // 초기화 필수
+    uint8_t top_addr = 16, mid_addr = 16, bot_addr = 16;
+    uint8_t new_depth = 0;
     uint8_t auth; // 권한
 
     uint8_t new_depth;
@@ -114,52 +113,83 @@ fcb_t *fm_creat(FMv2_record *reco, int8_t name[8], uint8_t path[27], uint32_t si
     }
 
     // 경로가 유효하다
-    if (path[17] == 0x20) // 2번째 경로인지
+    // 3. 경로 판별 및 할당 로직
+    if (path[8] == 0x20) // [Case 1] 루트 직속 (Depth 0)
     {
+        if (reco->last_addr >= 16)
+            return 2; // 공간 부족
+        if (fm_check(reco, 0, path) == FALSE)
+            return 0; // 중복 확인
 
-        // ! 나중에
+        uint8_t current_id = reco->last_addr;
+        new_file = &(reco->FMv2_mem[current_id][16][16]);
+
+        // 위치 정보 설정
+        top_addr = current_id;
+        new_depth = 0;
+
+        // 관리 정보 업데이트
+        reco->mapping[current_id][16][16] = token(path);
+        reco->last_addr += 1;
     }
-    else if (path[8] == 0x20 && reco->last_addr < 16) // 첫번째 경로인지 && 루트 디렉토리에 빈 공간이 있는지
+    else if (path[8] != 0x20 && path[17] == 0x20)
     {
-        // ! 디렉토리에 규칙아래 같은 이름이 있는지 확인
-        fm_check(reco, 1, path);
-        new_file->fid = reco->last_addr;                     // 자신의 주소를 받고
-        new_file = &(reco->FMv2_mem[new_file->fid][64][64]); // 자신의 메타데이터가 들어갈 위치를 찾고
-        reco->last_addr += 1;                                // 마지막 할당한 값을 하나 증가
-        reco->all_num += 1;
+        // 부모 디렉토리 인덱스 추출
+        uint8_t pos_dir1 = token(&path[9]);
+        fcb_t *parent_dir = &(reco->FMv2_mem[pos_dir1][16][16]);
+
+        if (parent_dir->last_addr >= 16)
+            return 2; // 부모 디렉토리 꽉 참
+        if (fm_check(reco, 1, path) == FALSE)
+            return 0; // 중복 확인
+
+        uint8_t current_id = parent_dir->last_addr;
+        new_file = &(reco->FMv2_mem[pos_dir1][current_id][16]);
+
+        // 위치 정보 설정
+        top_addr = pos_dir1;
+        mid_addr = current_id;
+        new_depth = 1;
+
+        // 관리 정보 업데이트
+        reco->mapping[pos_dir1][current_id][16] = token(path);
+        parent_dir->last_addr += 1;
     }
-    else // 3번째 경로
+    else if (path[17] != 0x20) // [Case 3] 3번째 경로 (Depth 2)
     {
-        // ! 나중에
+        // ! Case 2와 유사하게 pos_dir1, pos_dir2 거쳐서 할당 로직 구현
+        // top_addr = pos_dir1, mid_addr = pos_dir2, bot_addr = current_id
     }
 
-    // 새 파일에 넣는 로직
+    if (new_file == NULL)
+        return 0;
 
-    // 이름 넣기
+    // 4. 새 파일/디렉토리 메타데이터 주입
     for (int i = 0; i < MAX_FILE_NAME; i++)
     {
         new_file->alias[i] = name[i];
     }
-    new_file->is_dir = ok_dir; // 디렉토리 여부
+
+    new_file->is_dir = ok_dir;
     new_file->depth = new_depth;
-    new_file->lens = size >> 10; // 1KB 단위로 변환 (1MB = 1024개)
-    // 권한 로직
+    new_file->lens = size >> 10; // KB 단위
+    new_file->last_addr = 0;     // 새 디렉토리라면 자식 주소 0으로 초기화
+
+    // 권한 및 위치 로직
     new_file->me_auth = 7;
     new_file->you_auth = 7;
-
-    // 위치 로직
     new_file->ppdir_addr = top_addr;
     new_file->pdir_addr = mid_addr;
     new_file->me_addr = bot_addr;
-    // 날짜 로직
-    // ! 나중에 짜기
 
-    return new_file;
+    reco->all_num += 1;
+
+    return (uintptr_t)new_file; // 포인터 반환
 }
 
 //  파일 삭제
 // ! 나중에 구현
-
+fcb_t *fm_delete_(FMv2_record *reco, uint8_t path[27]) {}
 //  파일 탐색
 // ! 나중에 구현
 uint8_t fm_find(FMv2_record *reco)
@@ -174,8 +204,80 @@ void fm_list(FMv2_record *reco, int8_t path[27])
     // ! 나중에
 }
 
-void fm_excute(FMv2_record *reco)
+// 파일 관리자 실행 및 상태 검증
+// 시스템 초기화 상태 확인, 메모리 일관성 검증, 복구 작업 수행
+void fm_execute(FMv2_record *reco)
 {
+    // 1. 파일 관리자 초기화 상태 확인
+    if (reco == NULL)
+    {
+        return; // 파일 관리자 미초기화
+    }
+
+    if (reco->base == NULL)
+    {
+        return; // 베이스 주소 미설정
+    }
+
+    // 2. 메모리 일관성 검증
+    // 파일 개수와 마지막 주소 검증
+    if (reco->all_num > (MAX_FCB_dir * MAX_FCB_file * MAX_FCB_file))
+    {
+        reco->all_num = 0; // 비정상적인 파일 개수 초기화
+    }
+
+    if (reco->last_addr > 16) // 루트 디렉토리 최대 16개 파일
+    {
+        reco->last_addr = 0;
+    }
+
+    if (reco->cur_ptr > (MAX_FCB_dir * MAX_FCB_file * MAX_FCB_file))
+    {
+        reco->cur_ptr = 0; // 현재 포인터 초기화
+    }
+
+    // 3. 루트 디렉토리 메타데이터 검증
+    // 할당된 파일들의 상태 확인
+    uint8_t valid_count = 0;
+    for (int i = 0; i < reco->last_addr; i++)
+    {
+        fcb_t *current_fcb = &(reco->FMv2_mem[0][0][i]);
+
+        // 할당된 파일인지 확인
+        if (current_fcb->is_alloc)
+        {
+            // 파일 이름 유효성 검사
+            if (current_fcb->alias[0] != 0x00 && current_fcb->alias[0] != 0x20)
+            {
+                valid_count++;
+            }
+            else
+            {
+                // 비정상적인 파일, 할당 해제 표시
+                current_fcb->is_alloc = 0;
+            }
+        }
+    }
+
+    // 4. 파일 개수 재계산 (오류 복구)
+    if (valid_count != reco->all_num)
+    {
+        reco->all_num = valid_count;
+    }
+
+    // 5. 매핑 테이블 검증
+    // 루트 디렉토리의 매핑 테이블 일관성 확인
+    for (int i = 0; i < reco->last_addr; i++)
+    {
+        if (reco->mapping[0][0][i] == 0x00)
+        {
+            // 매핑 테이블이 비어있으면, 해당 파일도 비활성화
+            reco->FMv2_mem[0][0][i].is_alloc = 0;
+        }
+    }
+
+    // 6. 시스템 동기화 (향후 구현)
+    // fm_sync(reco);
 }
 
 //  경로 유효성 검사
@@ -267,33 +369,82 @@ bool fm_check(FMv2_record *reco, uint8_t cmd, int8_t path[27])
         // 9번째와 18번째 글자가 공백이 아니면 각각 디렉토리가 있다고 판단
 
         uint8_t dir_count = 0;
+        uint8_t pos_dir1 = 0;
+        uint8_t pos_dir2 = 0;
 
         if (path[9] != 0x20)
         {
+            // 그 앞을 pos_dir1로 저장
+            pos_dir1 = token(&path[0]);
             dir_count++;
         }
         if (path[18] != 0x20)
         {
+            // 그 앞을 pos_dir2로 저장
+            pos_dir2 = token(&path[9]);
             dir_count++;
         }
+
+        bool is_ok = TRUE;
 
         // 디렉토리는 다음에 나오는 위치가 16임
         if (dir_count == 0)
         {
             // 루트 디렉토리인 경우
             // 매핑 테이블에서 루트 디렉토리에 해당하는 값이 있는지 확인
-
-            uint64_t temp; // 여기에 token 함수를 통과한 값을 넣어서 매핑 테이블에서 확인하기
+            // ! 간단한 구현으로 대체
+            for (int i = 0; i < 16; i++)
+            {
+                if (reco->mapping[i][16][16] == token(path))
+                {
+                    // 값이 존재함
+                    is_ok = FALSE;
+                    break;
+                }
+            }
         }
         else if (dir_count == 1)
         {
             // 첫번째 디렉토리가 있는 경우
             // 매핑 테이블에서 첫번째 디렉토리에 해당하는 값이 있는지 확인
+
+            // ! 간단한 구현으로 대체
+            for (int i = 0; i < 16; i++)
+            {
+                if (reco->mapping[pos_dir1][i][16] == token(path))
+                {
+                    // 값이 존재함
+                    is_ok = FALSE;
+                    break;
+                }
+            }
         }
         else if (dir_count == 2)
         {
             // 두번째 디렉토리가 있는 경우
             // 매핑 테이블에서 두번째 디렉토리에 해당하는 값이 있는지 확인
+
+            // ! 간단한 구현으로 대체
+            for (int i = 0; i < 16; i++)
+            {
+                if (reco->mapping[pos_dir1][pos_dir2][i] == token(path))
+                {
+                    // 값이 존재함
+                    is_ok = FALSE;
+                    break;
+                }
+            }
+        }
+
+        if (is_ok)
+        {
+            // 만약 중복이 없다면
+            return TRUE;
+        }
+        else
+        {
+            // 중복이 있다면
+            return FALSE;
         }
     }
     // 맞지 않는 명령
@@ -304,11 +455,11 @@ bool fm_check(FMv2_record *reco, uint8_t cmd, int8_t path[27])
 }
 
 /*
-fcb__t *fm_delete_(FMv2_record *reco, uint8_t path[27]) {}
+fcb_t *fm_delete_(FMv2_record *reco, uint8_t path[27]) {}
 
-fcb__t *fm_find__path(FMv2_record *reco, uint8_t path[27]) {}
+fcb_t *fm_find_path(FMv2_record *reco, uint8_t path[27]) {}
 
-void fm_list__dir(FMv2_record *reco, uint8_t path[27]) {}
+void fm_list_dir(FMv2_record *reco, uint8_t path[27]) {}
 
 int32_t fm_read_(FMv2_record *reco, uint8_t path[27], uint64_t offset, uint8_t *buf, uint32_t size) {}
 
@@ -318,7 +469,7 @@ int8_t fm_rename_(FMv2_record *reco, uint8_t path[27], int8_t new_name[8]) {}
 
 int8_t fm_change_auth_(FMv2_record *reco, uint8_t path[27], uint8_t me_auth, uint8_t you_auth) {}
 
-fcb__t *fm_get_info_(FMv2_record *reco, uint8_t path[27]) {}
+fcb_t *fm_get_info_(FMv2_record *reco, uint8_t path[27]) {}
 
 uint32_t fm_allocate_space_(FMv2_record *reco, uint32_t size) {}
 

@@ -6,7 +6,10 @@
 
 종류 : 마이크로커널
 
-## 구주도
+## 실행법
+
+
+## 자세한 점보
 
 더 많은 정보
-[DETAIL](.\assets\DETAIL.md)
+[DETAIL](./assets/DETAIL.md)
