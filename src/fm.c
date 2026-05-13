@@ -187,21 +187,204 @@ fcb_t *fm_creat(FMv2_record *reco, int8_t name[8], uint8_t path[27], uint32_t si
     return (uintptr_t)new_file; // 포인터 반환
 }
 
-//  파일 삭제
-// ! 나중에 구현
-fcb_t *fm_delete_(FMv2_record *reco, uint8_t path[27]) {}
-//  파일 탐색
-// ! 나중에 구현
-uint8_t fm_find(FMv2_record *reco)
+// 파일 삭제
+// 주어진 경로의 파일을 삭제
+// 파일이 디렉토리인 경우 자식 파일이 없을 때만 삭제 가능
+fcb_t *fm_delete(FMv2_record *reco, int8_t path[27])
 {
-    // ! 나중에
+    // 경로 유효성 검사
+    if (fm_check(reco, 0, path) == FALSE)
+    {
+        return 0;
+    }
+
+    uint8_t top_addr = 0, mid_addr = 16, bot_addr = 16;
+    fcb_t *target_file = NULL;
+    uint16_t target_token = token(&path[18]); // 파일 이름의 토큰 값
+
+    // 경로 깊이 판별
+    if (path[8] == 0x20) // [Case 1] 루트 직속 (Depth 0)
+    {
+        // 루트 디렉토리에서 파일 검색
+        for (int i = 0; i < 16; i++)
+        {
+            if (reco->mapping[i][16][16] == target_token)
+            {
+                target_file = &(reco->FMv2_mem[i][16][16]);
+                top_addr = i;
+                bot_addr = 16;
+                break;
+            }
+        }
+    }
+    else if (path[8] != 0x20 && path[17] == 0x20) // [Case 2] 1단계 디렉토리
+    {
+        uint8_t pos_dir1 = token(&path[0]);
+
+        // 첫 번째 디렉토리 내에서 파일 검색
+        for (int i = 0; i < 16; i++)
+        {
+            if (reco->mapping[pos_dir1][i][16] == target_token)
+            {
+                target_file = &(reco->FMv2_mem[pos_dir1][i][16]);
+                top_addr = pos_dir1;
+                mid_addr = i;
+                bot_addr = 16;
+                break;
+            }
+        }
+    }
+    else if (path[17] != 0x20) // [Case 3] 2단계 디렉토리
+    {
+        uint8_t pos_dir1 = token(&path[0]);
+        uint8_t pos_dir2 = token(&path[9]);
+
+        // 두 번째 디렉토리 내에서 파일 검색
+        for (int i = 0; i < 16; i++)
+        {
+            if (reco->mapping[pos_dir1][pos_dir2][i] == target_token)
+            {
+                target_file = &(reco->FMv2_mem[pos_dir1][pos_dir2][i]);
+                top_addr = pos_dir1;
+                mid_addr = pos_dir2;
+                bot_addr = i;
+                break;
+            }
+        }
+    }
+
+    if (target_file == NULL)
+    {
+        return 0; // 파일을 찾지 못함
+    }
+
+    // 디렉토리인 경우 자식 파일이 있는지 확인
+    if (target_file->is_dir && target_file->last_addr > 0)
+    {
+        return 2; // 디렉토리에 파일이 있음 (삭제 불가)
+    }
+
+    // 파일/디렉토리 삭제
+    target_file->is_alloc = 0; // 할당 해제
+
+    // 파일 이름 초기화
+    for (int i = 0; i < MAX_FILE_NAME; i++)
+    {
+        target_file->alias[i] = 0x00;
+    }
+
+    // 매핑 테이블 초기화
+    if (bot_addr == 16 && mid_addr == 16) // 루트 직속
+    {
+        reco->mapping[top_addr][16][16] = 0x00;
+    }
+    else if (bot_addr == 16) // 1단계 디렉토리
+    {
+        reco->mapping[top_addr][mid_addr][16] = 0x00;
+    }
+    else // 2단계 디렉토리
+    {
+        reco->mapping[top_addr][mid_addr][bot_addr] = 0x00;
+    }
+
+    reco->all_num -= 1;
+
+    return (uintptr_t)target_file;
 }
 
-//  파일 목록 조회
-// ! 나중에 구현
+// 파일 목록 조회
+// 주어진 경로의 디렉토리 내 파일 목록을 출력
 void fm_list(FMv2_record *reco, int8_t path[27])
 {
-    // ! 나중에
+    // 경로 유효성 검사
+    if (fm_check(reco, 0, path) == FALSE)
+    {
+        return;
+    }
+
+    uint8_t top_addr = 0, mid_addr = 16, bot_addr = 16;
+    fcb_t *target_dir = NULL;
+
+    // 경로 깊이 판별
+    if (path[8] == 0x20) // [Case 1] 루트 디렉토리
+    {
+        // 루트 디렉토리의 파일들을 나열
+        for (int i = 0; i < reco->last_addr; i++)
+        {
+            fcb_t *current_file = &(reco->FMv2_mem[i][16][16]);
+
+            // 할당된 파일만 표시
+            if (current_file->is_alloc)
+            {
+                // 파일 정보 출력
+                for (int j = 0; j < MAX_FILE_NAME; j++)
+                {
+                    if (current_file->alias[j] != 0x00 && current_file->alias[j] != 0x20)
+                        io_printf("%c", current_file->alias[j]);
+                }
+                io_printf(" [%s] %uKB\n", current_file->is_dir ? "DIR" : "FILE", current_file->lens);
+            }
+        }
+    }
+    else if (path[8] != 0x20 && path[17] == 0x20) // [Case 2] 1단계 디렉토리
+    {
+        uint8_t pos_dir1 = token(&path[0]);
+        target_dir = &(reco->FMv2_mem[pos_dir1][16][16]);
+
+        // 디렉토리 확인
+        if (!target_dir->is_dir)
+        {
+            return; // 디렉토리가 아님
+        }
+
+        // 해당 디렉토리의 자식 파일들을 나열
+        for (int i = 0; i < target_dir->last_addr; i++)
+        {
+            fcb_t *current_file = &(reco->FMv2_mem[pos_dir1][i][16]);
+
+            // 할당된 파일만 표시
+            if (current_file->is_alloc)
+            {
+                // 파일 정보 출력
+                for (int j = 0; j < MAX_FILE_NAME; j++)
+                {
+                    if (current_file->alias[j] != 0x00 && current_file->alias[j] != 0x20)
+                        io_printf("%c", current_file->alias[j]);
+                }
+                io_printf(" [%s] %uKB\n", current_file->is_dir ? "DIR" : "FILE", current_file->lens);
+            }
+        }
+    }
+    else if (path[17] != 0x20) // [Case 3] 2단계 디렉토리
+    {
+        uint8_t pos_dir1 = token(&path[0]);
+        uint8_t pos_dir2 = token(&path[9]);
+        target_dir = &(reco->FMv2_mem[pos_dir1][pos_dir2][16]);
+
+        // 디렉토리 확인
+        if (!target_dir->is_dir)
+        {
+            return; // 디렉토리가 아님
+        }
+
+        // 해당 디렉토리의 자식 파일들을 나열
+        for (int i = 0; i < target_dir->last_addr; i++)
+        {
+            fcb_t *current_file = &(reco->FMv2_mem[pos_dir1][pos_dir2][i]);
+
+            // 할당된 파일만 표시
+            if (current_file->is_alloc)
+            {
+                // 파일 정보 출력
+                for (int j = 0; j < MAX_FILE_NAME; j++)
+                {
+                    if (current_file->alias[j] != 0x00 && current_file->alias[j] != 0x20)
+                        io_printf("%c", current_file->alias[j]);
+                }
+                io_printf(" [%s] %uKB\n", current_file->is_dir ? "DIR" : "FILE", current_file->lens);
+            }
+        }
+    }
 }
 
 // 파일 관리자 실행 및 상태 검증

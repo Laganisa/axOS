@@ -66,6 +66,8 @@ typedef struct FMv2_record
 void fm_init(uint64_t *addr);
 bool fm_check(FMv2_record *reco, uint8_t cmd, int8_t path[27]);
 fcb_t *fm_create(FMv2_record *reco, int8_t path[27], int8_t name[8], uint64_t size, bool ok_dir);
+fcb_t *fm_delete(FMv2_record *reco, int8_t path[27]);
+void fm_list(FMv2_record *reco, int8_t path[27]);
 void fm_execute(FMv2_record *reco);
 
 /*
